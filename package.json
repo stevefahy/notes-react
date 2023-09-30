@@ -1,0 +1,79 @@
+{
+  "name": "notes-react",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "http://localhost:5000",
+  "dependencies": {
+    "@emotion/cache": "^11.11.0",
+    "@emotion/react": "^11.11.1",
+    "@emotion/server": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.11.16",
+    "@mui/material": "^5.13.4",
+    "@reduxjs/toolkit": "^1.9.5",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/date-fns": "^2.6.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.34",
+    "@types/react": "^18.2.9",
+    "@types/react-dom": "^18.2.4",
+    "@types/react-router-dom": "^5.3.3",
+    "bcryptjs": "^2.4.3",
+    "buffer": "^6.0.3",
+    "date-fns": "^2.30.0",
+    "gray-matter": "^4.0.3",
+    "hastscript": "^7.2.0",
+    "history": "^4.10.1",
+    "mongodb": "^5.6.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^8.0.7",
+    "react-redux": "^8.0.7",
+    "react-router-dom": "^6.15.0",
+    "react-scripts": "5.0.1",
+    "react-syntax-highlighter": "^15.5.0",
+    "rehype-sanitize": "^5.0.1",
+    "rehype-slug": "^5.1.0",
+    "remark-directive": "^2.0.1",
+    "remark-directive-rehype": "^0.4.2",
+    "remark-emoji": "^3.1.2",
+    "remark-gfm": "^3.0.1",
+    "remark-smartypants": "^2.0.0",
+    "remark-supersub": "^1.0.0",
+    "typescript": "^4.9.5",
+    "unist-util-visit": "^4.1.2",
+    "use-query-params": "^2.2.1",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "set PORT=3004 && react-scripts start",
+    "build": "set PORT=3004 && react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "serve": "serve -s -p 3004 build"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/react-syntax-highlighter": "^15.5.7"
+  }
+}
