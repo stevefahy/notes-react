@@ -144,9 +144,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               loading: false,
             };
           });
-          let dateNow: number = Date.now();
-          window.localStorage.setItem("logout", "" + dateNow);
-          navigate(`${AC.LOGIN_PAGE}`);
         }
       } catch (err) {
         showNotification(`${err}`);
