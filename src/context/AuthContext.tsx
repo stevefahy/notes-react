@@ -181,17 +181,17 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       if (response.error) {
-        showNotification(`${response.error}`);
+        // showNotification(`${response.error}`);
         return;
       }
       if (response.success) {
         return response;
       }
     } catch (err) {
-      showNotification(`${err}`);
+      // showNotification(`${err}`);
       return;
     }
-  }, [showNotification]);
+  }, []);
 
   const resetAuthContext = () => {
     setAuthContext((authContext) => {

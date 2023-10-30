@@ -251,7 +251,7 @@ select {
 }
 
 .viewnote_content a {
-  color: #428bca;
+  color: #428bca !important;
   word-break: break-word;
 }
 
