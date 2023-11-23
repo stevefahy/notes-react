@@ -21,9 +21,7 @@
   justify-content: space-evenly;
   flex-direction: row;
   flex-direction: row;
-  justify-content: center;
   align-items: center;
-  gap: 20px;
 }
 
 .page_footer_container button {

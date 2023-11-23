@@ -8,7 +8,6 @@ import classes from "./breadcrumb.module.css";
 import EditIcon from "@mui/icons-material/Edit";
 import Fab from "@mui/material/Fab";
 import Typography from "@mui/material/Typography";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
 import StickyNote2OutlinedIcon from "@mui/icons-material/StickyNote2Outlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import NoteOutlinedIcon from "@mui/icons-material/NoteOutlined";
@@ -106,76 +105,78 @@ const Breadcrumb = () => {
   return (
     <Fragment>
       {pageLayout !== "other" && (
-        <div>
-          <div role="presentation" className={classes.breadcrumb_container}>
-            <Breadcrumbs
-              aria-label="breadcrumb"
-              className={classes.breadcrumbs_inner}
-            >
-              {/* PROFILE */}
-              {notebookLoaded &&
-                pageLayout === "profile" &&
-                notebooks_link &&
-                notebooks_link}
-              {notebookLoaded && pageLayout === "profile" && notebooks_link && (
+        <div role="presentation" className={classes.breadcrumb_container}>
+          <div aria-label="breadcrumb" className={classes.breadcrumbs_inner}>
+            {/* PROFILE */}
+            {notebookLoaded &&
+              pageLayout === "profile" &&
+              notebooks_link &&
+              notebooks_link}
+            {notebookLoaded && pageLayout === "profile" && notebooks_link && (
+              <span className={classes.breadcrumb_link}>
+                <span className={classes.breadcrumb_seperator}>/</span>
+                <Avatar
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    mr: 0.5,
+                    ml: 0.5,
+                    fill: "currentcolor",
+                    bgcolor: "#676767",
+                  }}
+                />
+                Profile
+              </span>
+            )}
+
+            {/* NOTEBOOKS */}
+            {notebookLoaded && pageLayout === "notebook" && notebooks_link}
+
+            {/* NOTEBOOKS / NOTEBOOK */}
+            {notebookLoaded && pageLayout === "notebooks" && notebooks_title}
+            {notebookLoaded &&
+              pageLayout === "notebook" &&
+              notebook &&
+              notebook.name && (
                 <span className={classes.breadcrumb_link}>
-                  <Avatar
-                    sx={{
-                      width: 24,
-                      height: 24,
-                      mr: 0.5,
-                      fill: "currentcolor",
-                      bgcolor: "#676767",
-                    }}
-                  />
-                  Profile
+                  <span className={classes.breadcrumb_link_icon}>
+                    <span className={classes.breadcrumb_seperator}>/</span>
+                    <StickyNote2OutlinedIcon
+                      sx={{ mr: 0.5, fontSize: "1.7rem" }}
+                      className={`notebook_cover_${notebook?.cover}`}
+                    />
+                  </span>
+                  {notebook.name && (
+                    <span className={classes.breadcrumb_link}>
+                      {notebook.name}
+                    </span>
+                  )}
                 </span>
               )}
 
-              {/* NOTEBOOKS */}
-              {notebookLoaded && pageLayout === "notebook" && notebooks_link}
-
-              {/* NOTEBOOKS / NOTEBOOK */}
-              {notebookLoaded && pageLayout === "notebooks" && notebooks_title}
-              {notebookLoaded &&
-                pageLayout === "notebook" &&
-                notebook &&
-                notebook.name && (
-                  <span className={classes.breadcrumb_link}>
-                    <span className={classes.breadcrumb_link_icon}>
-                      <StickyNote2OutlinedIcon
-                        sx={{ mr: 0.5, fontSize: "1.7rem" }}
-                        className={`notebook_cover_${notebook?.cover}`}
-                      />
-                    </span>
-                    {notebook.name && (
-                      <span className={classes.breadcrumb_link}>
-                        {notebook.name}
-                      </span>
-                    )}
+            {/* NOTEEBOOKS / NOTEBOOK / NOTE */}
+            {notebookLoaded && pageLayout === "note" && notebooks_link}
+            {notebookLoaded && notebook?.name && pageLayout === "note" && (
+              <NavLink to={`notebook/${notebook?.id}`}>
+                <span className={classes.breadcrumb_link}>
+                  <span className={classes.breadcrumb_link_icon}>
+                    <span className={classes.breadcrumb_seperator}>/</span>
+                    <StickyNote2OutlinedIcon
+                      sx={{ mr: 0.5, fontSize: "1.7rem" }}
+                      className={`notebook_cover_${notebook?.cover}`}
+                    />
                   </span>
-                )}
-
-              {/* NOTEEBOOKS / NOTEBOOK / NOTE */}
-              {notebookLoaded && pageLayout === "note" && notebooks_link}
-              {notebookLoaded && notebook?.name && pageLayout === "note" && (
-                <NavLink to={`notebook/${notebook?.id}`}>
-                  <span className={classes.breadcrumb_link}>
-                    <span className={classes.breadcrumb_link_icon}>
-                      <StickyNote2OutlinedIcon
-                        sx={{ mr: 0.5, fontSize: "1.7rem" }}
-                        className={`notebook_cover_${notebook?.cover}`}
-                      />
-                    </span>
-                    <span className={classes.breadcrumb_link_btn}>
-                      {notebookLoaded && notebook?.name}
-                    </span>
+                  <span className={classes.breadcrumb_link_btn}>
+                    {notebookLoaded && notebook?.name}
                   </span>
-                </NavLink>
-              )}
+                </span>
+              </NavLink>
+            )}
 
-              {/* NOTE */}
-              {notebookLoaded && notebook?.name && pageLayout === "note" && (
+            {/* NOTE */}
+            {notebookLoaded && notebook?.name && pageLayout === "note" && (
+              <Fragment>
+                <span className={classes.breadcrumb_seperator}>/</span>
                 <Typography>
                   <span className={classes.breadcrumb_link}>
                     <NoteOutlinedIcon
@@ -185,8 +186,8 @@ const Breadcrumb = () => {
                     Note
                   </span>
                 </Typography>
-              )}
-            </Breadcrumbs>
+              </Fragment>
+            )}
 
             {/* EDIT NOTEBOOK BUTTON */}
             {notebookLoaded && pageLayout === "notebook" && (
@@ -197,7 +198,11 @@ const Breadcrumb = () => {
                   color="default"
                   onClick={editNotebook}
                 >
-                  <EditIcon sx={{ mr: 0 }} fontSize="small" />
+                  <EditIcon
+                    sx={{ mr: 0 }}
+                    fontSize="small"
+                    className={classes.edit_btn}
+                  />
                 </Fab>
               </div>
             )}

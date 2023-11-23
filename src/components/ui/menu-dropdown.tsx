@@ -59,7 +59,7 @@ export default function MenuDropdown() {
             aria-haspopup="true"
             aria-expanded={open ? "true" : undefined}
           >
-            <MoreVertIcon style={{ color: "white" }} />
+            <MoreVertIcon style={{ color: "white" }} className="more_vert" />
           </IconButton>
         </Tooltip>
       </Box>

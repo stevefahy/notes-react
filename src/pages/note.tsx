@@ -348,6 +348,18 @@ const NotePage = () => {
             Create Note
           </Fab>
         )}
+        {noteLoaded && viewText.length === 0 && isCreate && (
+          <Fab
+            variant="extended"
+            color="primary"
+            size="medium"
+            onClick={exampleNote}
+            className="example_button"
+          >
+            <EggIcon sx={{ mr: 0 }} />
+            Example
+          </Fab>
+        )}
         {noteLoaded && !isSplitScreen && (
           <Fab
             variant="extended"
@@ -363,18 +375,7 @@ const NotePage = () => {
             {isView ? "View" : "Edit"}
           </Fab>
         )}
-        {noteLoaded && viewText.length === 0 && isCreate && (
-          <Fab
-            variant="extended"
-            color="primary"
-            size="medium"
-            onClick={exampleNote}
-            className="example_button"
-          >
-            <EggIcon sx={{ mr: 0 }} />
-            Example
-          </Fab>
-        )}
+
         {noteLoaded && !isMobile && (
           <Fab
             variant="extended"

@@ -160,7 +160,7 @@ const AddNotebookForm = (props: NotebookAddEdit) => {
                   size="medium"
                   onClick={submitHandler}
                 >
-                  Add Notebook
+                  Add
                 </Button>
               )}
               {props.method === "edit" && (
@@ -169,7 +169,7 @@ const AddNotebookForm = (props: NotebookAddEdit) => {
                   onClick={submitHandler}
                   disabled={checkForm()}
                 >
-                  Edit Notebook
+                  Confirm
                 </Button>
               )}
             </div>
