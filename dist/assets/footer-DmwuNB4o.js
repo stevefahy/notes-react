@@ -1,0 +1,1 @@
+import{j as e}from"./mui-vendor-CW2_5rLd.js";const t="_page_footer_1bjs2_1",a="_page_footer_container_1bjs2_33",o={page_footer:t,page_footer_container:a},_=r=>e.jsx("div",{className:o.page_footer,children:e.jsx("div",{className:o.page_footer_container,children:r.children})});export{_ as F};

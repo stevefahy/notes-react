@@ -12,7 +12,7 @@ export const deleteNotes = async (
   const del = { note_ids: notes_selected };
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/delete-notes`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/delete-notes`,
       {
         method: "POST",
         credentials: "include",

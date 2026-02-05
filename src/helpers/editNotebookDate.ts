@@ -16,7 +16,7 @@ export const editNotebookDate = async (
   };
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/edit-notebook-date`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/edit-notebook-date`,
       {
         method: "POST",
         credentials: "include",

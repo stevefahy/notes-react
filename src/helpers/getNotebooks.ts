@@ -8,7 +8,7 @@ export const getNotebooks = async (token: string): Promise<GetNotebooks> => {
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/notebooks`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/notebooks`,
       {
         method: "GET",
         credentials: "include",

@@ -8,7 +8,7 @@ export const refreshtoken = async (): Promise<AuthAuthenticate> => {
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/auth/refreshtoken`,
+      import.meta.env.VITE_API_ENDPOINT + `api/auth/refreshtoken`,
       {
         method: "GET",
         credentials: "include",

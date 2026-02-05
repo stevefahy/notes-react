@@ -93,7 +93,7 @@ const SelectNotebookForm = (props: SelectNotebookFormProps) => {
   };
 
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedNotebook((prev) => event.target.value);
+    setSelectedNotebook(event.target.value);
     if (event.target.value === "default") {
       setFormIsValid(false);
     } else {

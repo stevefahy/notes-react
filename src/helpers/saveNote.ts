@@ -18,7 +18,7 @@ export const saveNote = async (
   };
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/save-note`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/save-note`,
       {
         method: "POST",
         headers: {

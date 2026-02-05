@@ -18,7 +18,7 @@ export const moveNotes = async (
   };
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/move-notes`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/move-notes`,
       {
         method: "POST",
         headers: {

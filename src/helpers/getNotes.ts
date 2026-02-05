@@ -11,7 +11,7 @@ export const getNotes = async (
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/notes/${notebookId}`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/notes/${notebookId}`,
       {
         method: "GET",
         credentials: "include",

@@ -143,12 +143,9 @@ const ProfileForm = (props: ProfileFormProps) => {
 
   const resetToggle = () => {
     resetError();
-    setUserNameToggle((prev) => {
-      return false;
-    });
-    setPasswordToggle((prev) => {
-      return false;
-    });
+    setUserNameToggle(false);
+
+    setPasswordToggle(false);
   };
 
   const toggleUserName = () => {
@@ -156,9 +153,7 @@ const ProfileForm = (props: ProfileFormProps) => {
     setUserNameToggle((prev) => {
       return !prev;
     });
-    setPasswordToggle((prev) => {
-      return false;
-    });
+    setPasswordToggle(false);
   };
 
   const togglePassword = () => {
@@ -166,9 +161,7 @@ const ProfileForm = (props: ProfileFormProps) => {
     setPasswordToggle((prev) => {
       return !prev;
     });
-    setUserNameToggle((prev) => {
-      return false;
-    });
+    setUserNameToggle(false);
   };
 
   return (

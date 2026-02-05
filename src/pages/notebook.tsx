@@ -204,23 +204,23 @@ const NotebookPage = () => {
   ]);
 
   const updateSelected = (selected: SelectedNote) => {
-    setIsSelected((prev) => selected);
+    setIsSelected(selected);
   };
 
   const moveNoteFormHandler = () => {
-    setMoveNote((prevState) => true);
+    setMoveNote(true);
   };
 
   const cancelHandler = () => {
-    setMoveNote((prevState) => false);
+    setMoveNote(false);
   };
   const cancelEditHandler = () => {
-    setEnableEditNotebook((prevState) => false);
+    setEnableEditNotebook(false);
     dispatch(editActions.editStatus({ status: false }));
   };
 
   const editNotebookBtnHandler = () => {
-    setEnableEditNotebook((prevState) => true);
+    setEnableEditNotebook(true);
   };
 
   const addNoteFormHandler = () => {
@@ -378,14 +378,14 @@ const NotebookPage = () => {
           return;
         }
         if (response.success) {
-          setNotebook((prev) => response.notebook_edited);
+          setNotebook(response.notebook_edited);
           dispatch(editActions.editStatus({ status: false }));
           dispatch(
             editActions.editChange({
               message: response.notebook_edited,
             })
           );
-          setEnableEditNotebook((prev) => false);
+          setEnableEditNotebook(false);
         }
       } catch (err) {
         showNotification(`${err}`);
@@ -461,7 +461,7 @@ const NotebookPage = () => {
             updateNotebookDate(nID, updatedNotesLatestDate);
           }
           // Close the dialogue
-          setMoveNote((prev) => false);
+          setMoveNote(false);
           // Reset
           cancelEditNoteFormHandler();
         }

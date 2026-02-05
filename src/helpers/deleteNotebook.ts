@@ -14,7 +14,7 @@ export const deleteNotebook = async (
       notebookID: notebook_id,
     };
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/delete-notebook`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/delete-notebook`,
       {
         method: "POST",
         credentials: "include",

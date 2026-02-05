@@ -11,7 +11,7 @@ export const createNote = async (
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/create-note`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/create-note`,
       {
         method: "POST",
         credentials: "include",

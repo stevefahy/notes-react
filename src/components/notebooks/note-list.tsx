@@ -28,11 +28,7 @@ const NoteList = (props: NotesProps) => {
   useEffect(() => {
     if (props_notes) {
       // Set the initial notes array
-      setNotes((prev) => {
-        let newarray: Note[] = props_notes;
-        return newarray;
-      });
-
+      setNotes(props_notes);
       let newarray: CheckedNote[] = [];
       props_notes.forEach((note) => {
         // Set the checkboxes initial value to false

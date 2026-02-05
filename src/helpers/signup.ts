@@ -12,14 +12,14 @@ export const signup = async (
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/auth/signup`,
+      import.meta.env.VITE_API_ENDPOINT + `api/auth/signup`,
       {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, email, password, framework: "react" }),
       }
     );
     if (response.status === 404) {

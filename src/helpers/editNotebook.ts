@@ -20,7 +20,7 @@ export const editNotebook = async (
   };
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/edit-notebook`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/edit-notebook`,
       {
         method: "POST",
         headers: {

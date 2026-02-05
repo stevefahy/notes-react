@@ -11,7 +11,7 @@ export const login = async (
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/auth/login`,
+      import.meta.env.VITE_API_ENDPOINT + `api/auth/login`,
       {
         method: "POST",
         credentials: "include",

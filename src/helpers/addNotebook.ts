@@ -16,7 +16,7 @@ export const addNotebook = async (
       notebookCover: notebook_cover,
     };
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/addnotebook`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/addnotebook`,
       {
         method: "POST",
         credentials: "include",

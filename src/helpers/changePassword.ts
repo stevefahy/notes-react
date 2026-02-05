@@ -11,7 +11,7 @@ export const changePassword = async (
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/auth/change-password`,
+      import.meta.env.VITE_API_ENDPOINT + `api/auth/change-password`,
       {
         method: "PATCH",
         credentials: "include",

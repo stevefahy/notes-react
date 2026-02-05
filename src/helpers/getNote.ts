@@ -12,7 +12,7 @@ export const getNote = async (
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT +
+      import.meta.env.VITE_API_ENDPOINT +
         `api/data/notebook/${notebookId}/${noteId}`,
       {
         method: "GET",

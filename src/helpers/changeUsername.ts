@@ -11,7 +11,7 @@ export const changeUsername = async (
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/auth/change-username`,
+      import.meta.env.VITE_API_ENDPOINT + `api/auth/change-username`,
       {
         method: "POST",
         credentials: "include",

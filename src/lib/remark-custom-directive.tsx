@@ -1,9 +1,8 @@
-// This plugin is an example to turn `:::custom` into divs, passing arbitrary
-// attributes.
+// This plugin turns `:::custom` into divs, passing arbitrary attributes.
 /** @type {import('unified').Plugin<[], import('mdast').Root>} */
 
 import { visit } from "unist-util-visit";
-import { h } from "hastscript/html.js";
+import { h } from "hastscript";
 
 export const remarkCustomDirective = (noteTag: any) => {
   return (tree: any) => {

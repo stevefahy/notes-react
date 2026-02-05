@@ -8,7 +8,7 @@ export const logout = async (token: string): Promise<Logout> => {
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/auth/logout`,
+      import.meta.env.VITE_API_ENDPOINT + `api/auth/logout`,
       {
         method: "GET",
         credentials: "include",

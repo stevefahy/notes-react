@@ -1,4 +1,11 @@
-import { Fragment, useEffect, useState, useContext, useCallback } from "react";
+import {
+  Fragment,
+  useEffect,
+  useState,
+  useContext,
+  useCallback,
+  useRef,
+} from "react";
 import { GetNotebooks } from "../types";
 import { uiActions } from "../store/ui-slice";
 import { useAppDispatch } from "../store/hooks";
@@ -18,6 +25,7 @@ const NotebooksPage = () => {
 
   const [notebooksLoaded, setNotebooksLoaded] = useState(false);
   const [userNotebooks, setUserNotebooks] = useState<GetNotebooks>();
+  const processedNotebooksRef = useRef<string | null>(null);
 
   const showNotification = useCallback(
     (msg: string) => {
@@ -59,16 +67,26 @@ const NotebooksPage = () => {
   useEffect(() => {
     const notebooks_found = userNotebooks?.notebooks;
     const error_found = userNotebooks?.error;
+
+    // Create a unique key from the notebooks array to track if we've processed it
+    const notebooksKey = notebooks_found?.map((n) => n._id).join(",") || null;
+
+    // Prevent infinite loop: only process if we haven't processed this exact set of notebooks
+    if (notebooksKey && processedNotebooksRef.current === notebooksKey) {
+      return;
+    }
+
     if (notebooks_found && notebooks_found.length > 0) {
       // Set an old date for those notes without any updatedAt
-      notebooks_found.map((x) => {
-        if (x.updatedAt === "No date" || undefined) {
-          x.updatedAt = "December 17, 1995 03:24:00";
+      // Create a new array with updated dates (don't mutate the original)
+      const notebooksWithDates = notebooks_found.map((x) => {
+        if (x.updatedAt === "No date" || x.updatedAt === undefined) {
+          return { ...x, updatedAt: "December 17, 1995 03:24:00" };
         }
         return x;
       });
-      // Sort the notebooks by updatedAt
-      notebooks_found
+      // Sort the notebooks by updatedAt (create a new array, don't mutate)
+      const sortedNotebooks = [...notebooksWithDates]
         .sort((a, b) => {
           if (a.updatedAt !== undefined && b.updatedAt !== undefined) {
             return new Date(a.updatedAt) > new Date(b.updatedAt) ? 1 : -1;
@@ -77,6 +95,13 @@ const NotebooksPage = () => {
           }
         })
         .reverse();
+
+      // Update state with the new sorted array
+      setUserNotebooks({
+        ...userNotebooks!,
+        notebooks: sortedNotebooks,
+      });
+      processedNotebooksRef.current = notebooksKey; // Mark as processed
       setNotebooksLoaded(true);
     }
 
@@ -89,7 +114,7 @@ const NotebooksPage = () => {
         })
       );
     }
-  }, [userNotebooks, dispatch]);
+  }, [userNotebooks?.notebooks, dispatch, userNotebooks]);
 
   return (
     <Fragment>

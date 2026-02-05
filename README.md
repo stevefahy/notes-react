@@ -12,6 +12,14 @@ npm run start
 yarn start
 ```
 
+Production
+
+```bash
+npm run build
+```
+
+Creates /dist folder.
+
 Open [http://localhost:3004](http://localhost:3004) with your browser to see the result.
 
 ## About

@@ -44,24 +44,24 @@ const AddNotebookForm = (props: NotebookAddEdit) => {
   };
 
   const nameChangeHandler = (name: string) => {
-    setSelectedName((prev) => name);
+    setSelectedName(name);
     if (name !== originalName || selectedCover !== originalCover) {
-      setFormChanged((prev) => true);
+      setFormChanged(true);
     } else {
-      setFormChanged((prev) => false);
+      setFormChanged(false);
     }
   };
 
   const coverChangeHandler = (cover: NotebookCoverType) => {
-    setSelectedName((prev) => notebookNameRef.current!.value);
-    setSelectedCover((prev) => cover);
+    setSelectedName(notebookNameRef.current!.value);
+    setSelectedCover(cover);
     if (
       notebookNameRef.current!.value !== originalName ||
       (notebookNameRef.current!.value !== "" && cover !== originalCover)
     ) {
-      setFormChanged((prev) => true);
+      setFormChanged(true);
     } else {
-      setFormChanged((prev) => false);
+      setFormChanged(false);
     }
   };
 

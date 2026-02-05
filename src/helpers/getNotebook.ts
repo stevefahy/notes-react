@@ -11,7 +11,7 @@ export const getNotebook = async (
   let response;
   try {
     response = await fetch(
-      process.env.REACT_APP_API_ENDPOINT + `api/data/notebook/${notebookId}`,
+      import.meta.env.VITE_API_ENDPOINT + `api/data/notebook/${notebookId}`,
       {
         method: "GET",
         credentials: "include",
