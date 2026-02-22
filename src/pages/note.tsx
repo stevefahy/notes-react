@@ -275,10 +275,13 @@ const NotePage = () => {
   );
 
   const updatedViewTextHandler = useCallback(
-    (updatedViewText: string) => {
-      updateIsChanged(updatedViewText);
-      setViewText(updatedViewText);
-      setUpdateEditTextProp(updatedViewText);
+    (arg: string | ((prev: string) => string)) => {
+      setViewText((prev) => {
+        const next = typeof arg === "function" ? arg(prev) : arg;
+        updateIsChanged(next);
+        setUpdateEditTextProp(next);
+        return next;
+      });
     },
     [updateIsChanged]
   );

@@ -30,14 +30,14 @@ export interface NoteEditorView {
 	visible: boolean;
 	splitScreen: boolean;
 	viewText: string;
-	updatedViewText: (updatedEdit: string) => void;
+	updatedViewText: (updatedEdit: string | ((prev: string) => string)) => void;
 }
 
 export interface ViewNoteMarkdownProps {
 	viewText: string;
 	scrollView?: number;
 	splitScreen?: boolean;
-	updatedViewText: (updatedEdit: string) => void;
+	updatedViewText: (updatedEdit: string | ((prev: string) => string)) => void;
 	disableLinks: boolean;
 }
 

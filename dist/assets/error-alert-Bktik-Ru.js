@@ -1,0 +1,1 @@
+import{j as e,n as t}from"./mui-vendor-Bu-oH_w4.js";import"./react-vendor-C8A_OEME.js";const o="_error_alert_position_1sl8s_1",s={error_alert_position:o},n=r=>e.jsx("div",{className:s.error_alert_position,children:e.jsx(t,{severity:`${r.error_severity?r.error_severity:"error"}`,children:r.children})});export{n as default};

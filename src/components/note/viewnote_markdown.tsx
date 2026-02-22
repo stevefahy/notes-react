@@ -81,22 +81,26 @@ const ViewNoteMarkdown = (props: ViewNoteMarkdownProps) => {
     sourcePosition: SourcePosition,
     checked: boolean
   ) => {
-    // Guard against undefined line numbers
     const lineNum = sourcePosition.start?.line;
     if (typeof lineNum !== "number") return;
-    // Use 'content' (the current parsed markdown) as the source
-    const lines = content.split("\n");
-    const lineIndex = lineNum - 1;
-    if (lines[lineIndex] !== undefined) {
+
+    props.updatedViewText((currentViewText) => {
+      const { content } = matter(currentViewText);
+      const lines = content.split("\n");
+      const lineIndex = lineNum - 1;
+      if (lines[lineIndex] === undefined) return currentViewText;
+
       lines[lineIndex] = lines[lineIndex].replace(
         /\[\s*(x|\s)\s*\]/,
         checked ? "[x]" : "[ ]"
       );
       const newContent = lines.join("\n");
-      // ONLY notify the parent.
-      // The parent updates its state -> props.viewText changes -> 'content' recalculates.
-      props.updatedViewText(newContent);
-    }
+      // Preserve frontmatter if present
+      const { data } = matter(currentViewText);
+      return Object.keys(data).length > 0
+        ? matter.stringify(newContent, data)
+        : newContent;
+    });
   };
 
   const InputRenderer = ({ node, checked: propChecked, ...props }: any) => {

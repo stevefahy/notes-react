@@ -1,12 +1,13 @@
-import { useState, useEffect, Fragment, memo } from "react";
+import { useState, useEffect, Fragment, memo, lazy, Suspense } from "react";
 import matter from "gray-matter";
 import classesShared from "./editviewnote_shared.module.css";
 import { NoteEditorView } from "../../types";
-import ViewNoteMarkdown from "./viewnote_markdown";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
 import { Skeleton } from "@mui/material";
 import { Buffer } from "buffer";
+
+const ViewNoteMarkdown = lazy(() => import("./viewnote_markdown"));
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
 
 // Required for gray-matter library
 window.Buffer = window.Buffer || Buffer;
@@ -55,12 +56,14 @@ const ViewNote = (props: NoteEditorView) => {
               {!isLoaded ? (
                 <Skeleton variant="rounded" height={50} />
               ) : (
-                <ViewNoteMarkdown
-                  splitScreen={splitscreen}
-                  viewText={contextView}
-                  updatedViewText={updateViewText}
-                  disableLinks={false}
-                />
+                <Suspense fallback={<Skeleton variant="rounded" height={50} />}>
+                  <ViewNoteMarkdown
+                    splitScreen={splitscreen}
+                    viewText={contextView}
+                    updatedViewText={updateViewText}
+                    disableLinks={false}
+                  />
+                </Suspense>
               )}
             </article>
           </CardContent>
