@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      sourcemap: false,
       rollupOptions: {
         onwarn(warning, warn) {
           // Suppress gray-matter eval warning (third-party library issue, not a security problem	)
@@ -48,9 +49,15 @@ export default defineConfig(({ mode }) => {
               "react-markdown",
               "remark-gfm",
               "remark-directive",
+              "remark-directive-rehype",
+              "remark-emoji",
+              "remark-smartypants",
+              "remark-supersub",
               "rehype-sanitize",
               "rehype-raw",
+              "rehype-slug",
               "gray-matter",
+              "unist-util-visit",
             ],
             "syntax-highlighter": ["react-syntax-highlighter"],
             "redux-vendor": ["@reduxjs/toolkit", "react-redux"],

@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import matter from "gray-matter";
 import classes from "./viewnotethumb.module.css";
-import ViewNoteMarkdown from "./viewnote_markdown";
 import { Skeleton } from "@mui/material";
 import { Buffer } from "buffer";
+
+const ViewNoteMarkdown = lazy(() => import("./viewnote_markdown"));
 
 // Required for gray-matter library
 window.Buffer = Buffer;
@@ -35,11 +36,13 @@ const ViewNoteThumb = (props: any) => {
 	) : (
 		<div className={classes.box}>
 			<article className="viewnote_content viewnote_thumb">
-				<ViewNoteMarkdown
-					viewText={content}
-					updatedViewText={updateViewText}
-					disableLinks={true}
-				/>
+				<Suspense fallback={<Skeleton variant="rounded" height={15} />}>
+					<ViewNoteMarkdown
+						viewText={content}
+						updatedViewText={updateViewText}
+						disableLinks={true}
+					/>
+				</Suspense>
 			</article>
 		</div>
 	);
