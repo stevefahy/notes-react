@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import matter from "gray-matter";
+import { truncateMarkdownPreview } from "../../lib/truncateMarkdownPreview";
 import classes from "./viewnotethumb.module.css";
 import { Skeleton } from "@mui/material";
 import { Buffer } from "buffer";
@@ -10,7 +11,8 @@ const ViewNoteMarkdown = lazy(() => import("./viewnote_markdown"));
 window.Buffer = Buffer;
 
 const ViewNoteThumb = (props: any) => {
-	const { content } = matter(props.text);
+	const { content: rawContent } = matter(props.text);
+	const content = truncateMarkdownPreview(rawContent);
 
 	const [loaded, setLoaded] = useState(false);
 
