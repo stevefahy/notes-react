@@ -228,13 +228,42 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [getRefreshToken]);
 
+  const verifyRefreshTokenWithRetry = useCallback(
+    async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await getRefreshToken();
+          if (response?.success) {
+            setAuthContext((oldValues) => ({
+              ...oldValues,
+              success: response.success,
+              token: response.token,
+              details: response.details,
+              loading: false,
+            }));
+            return;
+          }
+        } catch {
+          /* retry on next iteration */
+        }
+        if (i < retries - 1) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+      resetAuthContext();
+      navigate(`${AC.LOGIN_PAGE}`);
+    },
+    [getRefreshToken, navigate]
+  );
+
   useEffect(() => {
-    verifyRefreshToken();
+    verifyRefreshTokenWithRetry();
     return () => {};
-  }, [verifyRefreshToken]);
+  }, [verifyRefreshTokenWithRetry]);
 
   useEffect(() => {
     const interval = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
       if (!authContext.success) {
         clearInterval(interval);
         navigate(`${AC.LOGIN_PAGE}`);
@@ -249,13 +278,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        verifyRefreshToken();
+        setTimeout(() => verifyRefreshTokenWithRetry(), 500);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [verifyRefreshToken]);
+  }, [verifyRefreshTokenWithRetry]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
