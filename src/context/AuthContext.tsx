@@ -29,10 +29,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           status: "error",
           title: "Error!",
           message: msg,
-        })
+        }),
       );
     },
-    [dispatch]
+    [dispatch],
   );
 
   // Sync logout across tabs
@@ -42,7 +42,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         navigate(`${AC.LOGIN_PAGE}`);
       }
     },
-    [navigate]
+    [navigate],
   );
 
   useEffect(() => {
@@ -83,7 +83,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSignup = async (
     username: string,
     email: string,
-    password: string
+    password: string,
   ): Promise<AuthSignup> => {
     if (email && password) {
       try {
@@ -122,7 +122,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleLogin = async (
     email: string,
-    password: string
+    password: string,
   ): Promise<AuthAuthenticate> => {
     if (email && password) {
       try {
@@ -253,7 +253,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       resetAuthContext();
       navigate(`${AC.LOGIN_PAGE}`);
     },
-    [getRefreshToken, navigate]
+    [getRefreshToken, navigate],
   );
 
   useEffect(() => {

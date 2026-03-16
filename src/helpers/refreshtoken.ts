@@ -12,6 +12,7 @@ export const refreshtoken = async (): Promise<AuthAuthenticate> => {
       {
         method: "GET",
         credentials: "include",
+        cache: "no-store",
         headers: {
           "Content-Type": "application/json",
         },
