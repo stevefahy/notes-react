@@ -29,10 +29,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           status: "error",
           title: "Error!",
           message: msg,
-        }),
+        })
       );
     },
-    [dispatch],
+    [dispatch]
   );
 
   // Sync logout across tabs
@@ -42,7 +42,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         navigate(`${AC.LOGIN_PAGE}`);
       }
     },
-    [navigate],
+    [navigate]
   );
 
   useEffect(() => {
@@ -83,7 +83,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSignup = async (
     username: string,
     email: string,
-    password: string,
+    password: string
   ): Promise<AuthSignup> => {
     if (email && password) {
       try {
@@ -122,7 +122,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleLogin = async (
     email: string,
-    password: string,
+    password: string
   ): Promise<AuthAuthenticate> => {
     if (email && password) {
       try {
@@ -228,38 +228,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [getRefreshToken]);
 
-  const verifyRefreshTokenWithRetry = useCallback(
-    async (retries = 3) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const response = await getRefreshToken();
-          if (response?.success) {
-            setAuthContext((oldValues) => ({
-              ...oldValues,
-              success: response.success,
-              token: response.token,
-              details: response.details,
-              loading: false,
-            }));
-            return;
-          }
-        } catch {
-          /* retry on next iteration */
-        }
-        if (i < retries - 1) {
-          await new Promise((r) => setTimeout(r, 1000));
-        }
-      }
-      resetAuthContext();
-      navigate(`${AC.LOGIN_PAGE}`);
-    },
-    [getRefreshToken, navigate],
-  );
-
   useEffect(() => {
-    verifyRefreshTokenWithRetry();
+    verifyRefreshToken();
     return () => {};
-  }, [verifyRefreshTokenWithRetry]);
+  }, [verifyRefreshToken]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -278,13 +250,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        setTimeout(() => verifyRefreshTokenWithRetry(), 500);
+        verifyRefreshToken();
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [verifyRefreshTokenWithRetry]);
+  }, [verifyRefreshToken]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
