@@ -6,10 +6,12 @@ type LazyModuleLoader = () => Promise<unknown>;
 /** Route-level lazy pages: failed chunk → RouteLoadError (snack + retry), not router crash. */
 export function lazyRoute(
   factory: LazyModuleLoader,
-): LazyExoticComponent<ComponentType<any>> {
+): LazyExoticComponent<ComponentType<object>> {
   return lazy(() =>
     factory()
-      .then((mod) => mod as { default: ComponentType<any> })
-      .catch(() => ({ default: RouteLoadError as ComponentType<any> })),
-  ) as LazyExoticComponent<ComponentType<any>>;
+      .then((mod) => mod as { default: ComponentType<object> })
+      .catch(() => ({
+        default: RouteLoadError as ComponentType<object>,
+      })),
+  ) as LazyExoticComponent<ComponentType<object>>;
 }

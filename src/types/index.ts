@@ -1,12 +1,12 @@
 import { TDateISO } from "./date";
 import type { NotebookCoverType } from "../lib/folder-options";
-import {
-  DeleteResult,
-  InsertOneResult,
-  UpdateResult,
-  ObjectId,
-  BulkWriteResult,
-} from "mongodb";
+import type {
+  ApiBulkWriteResult,
+  ApiDeleteResult,
+  ApiInsertOneResult,
+  ApiObjectId,
+  ApiUpdateResult,
+} from "./api";
 
 export interface Props {
   children?: React.ReactNode;
@@ -84,7 +84,7 @@ interface CreateNoteError {
 interface CreateNoteSuccess {
   error?: never;
   success: boolean;
-  note: InsertOneResult<Document>;
+  note: ApiInsertOneResult;
 }
 
 export type CreateNote = CreateNoteError | CreateNoteSuccess;
@@ -100,8 +100,8 @@ interface DeleteNotebookError {
 interface DeleteNotebookSuccess {
   error?: never;
   success: boolean;
-  notebook_deleted: ObjectId;
-  server_response: UpdateResult<Document>;
+  notebook_deleted: ApiObjectId;
+  server_response: ApiUpdateResult;
 }
 
 export type DeleteNotebook = DeleteNotebookError | DeleteNotebookSuccess;
@@ -116,8 +116,8 @@ interface EditNotebookDateError {
 interface EditNotebookDateSuccess {
   error?: never;
   success: boolean;
-  notebook_deleted: ObjectId;
-  server_response: UpdateResult<Document>;
+  notebook_deleted: ApiObjectId;
+  server_response: ApiUpdateResult;
 }
 
 export type EditNotebookDate = EditNotebookDateError | EditNotebookDateSuccess;
@@ -217,16 +217,6 @@ export interface SelectNotebookFormProps {
   moveNotes: (notebook_id: string) => void;
 }
 
-// Notification
-
-export type NotificationStatus = "pending" | "success" | "error" | null;
-
-export interface NotificationInterface {
-  status: NotificationStatus;
-  title?: string | null;
-  message?: string | null;
-}
-
 // Alert
 
 export interface AlertInterface {
@@ -298,7 +288,7 @@ interface DeleteNotesError {
 
 interface DeleteNotesSuccess {
   success: boolean;
-  notes_deleted: DeleteResult;
+  notes_deleted: ApiDeleteResult;
   error?: never;
 }
 
@@ -345,7 +335,7 @@ interface MoveNotesError {
 interface MoveNotesSuccess {
   success: boolean;
   notes_moved: string[];
-  server_response: BulkWriteResult;
+  server_response: ApiBulkWriteResult;
   error?: never;
 }
 
@@ -360,7 +350,7 @@ interface SaveNoteError {
 
 interface SaveNoteSuccess {
   success: boolean;
-  server_response: UpdateResult<Document>;
+  server_response: ApiUpdateResult;
   error?: never;
 }
 

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import matter from "../../lib/matter";
+import { scrollToElementByHtmlId } from "../../lib/markdownScroll";
 import { SkeletonBlock } from "../ui/skeleton-block";
 import type { ViewNoteMarkdownProps } from "../../types";
 
@@ -32,6 +33,53 @@ const ViewNoteMarkdown = (props: ViewNoteMarkdownProps) => {
   const html = useMemo(
     () => (renderMarkdown ? renderMarkdown(viewText, disableLinks) : ""),
     [renderMarkdown, viewText, disableLinks],
+  );
+
+  const handleMarkdownPointer = useCallback(
+    (event: React.MouseEvent<HTMLSpanElement>) => {
+      const target = event.target as HTMLElement;
+      if (updatedViewText && target.tagName === "INPUT") {
+        return;
+      }
+
+      const foot = target.closest<HTMLElement>("[data-md-footnote-scroll]");
+      if (foot) {
+        const to = foot.getAttribute("data-md-footnote-scroll");
+        if (to) {
+          event.preventDefault();
+          scrollToElementByHtmlId(to);
+        }
+        return;
+      }
+
+      const anchor = target.closest<HTMLElement>(
+        ".md_anchorlink[data-md-target-id]",
+      );
+      if (anchor) {
+        const id = anchor.getAttribute("data-md-target-id");
+        if (id) {
+          event.preventDefault();
+          scrollToElementByHtmlId(id);
+        }
+      }
+    },
+    [updatedViewText],
+  );
+
+  const handleMarkdownKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLSpanElement>) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const target = event.target as HTMLElement;
+      const anchor = target.closest<HTMLElement>(
+        ".md_anchorlink[data-md-target-id]",
+      );
+      if (!anchor || !anchor.contains(target)) return;
+      const id = anchor.getAttribute("data-md-target-id");
+      if (!id) return;
+      event.preventDefault();
+      scrollToElementByHtmlId(id);
+    },
+    [],
   );
 
   const handleCheckboxClick = useCallback(
@@ -85,7 +133,15 @@ const ViewNoteMarkdown = (props: ViewNoteMarkdownProps) => {
       }
       data-viewnote-markdown=""
       {...(!isReadOnly ? { role: "presentation" as const } : {})}
-      onClick={updatedViewText ? handleCheckboxClick : undefined}
+      onClick={
+        updatedViewText
+          ? (e) => {
+              handleMarkdownPointer(e);
+              handleCheckboxClick(e);
+            }
+          : handleMarkdownPointer
+      }
+      onKeyDown={handleMarkdownKeyDown}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

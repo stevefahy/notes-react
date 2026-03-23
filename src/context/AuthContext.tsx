@@ -54,7 +54,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         if (response.success) {
           resetAuthContext();
-          let dateNow: number = Date.now();
+          const dateNow: number = Date.now();
           window.localStorage.setItem("logout", "" + dateNow);
           navigate(`${AC.LOGIN_PAGE}`);
         }
@@ -157,14 +157,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     noteID: null,
   };
 
-  let [authContext, setAuthContext] = useState<IAuthContext>(initialState);
-  let value = {
-    loading: true,
+  const [authContext, setAuthContext] = useState<IAuthContext>(initialState);
+  const value = {
     authContext,
     setAuthContext,
-    onLogin: handleLogin,
-    onLogout: handleLogout,
-    onRegister: handleSignup,
   };
 
   const getRefreshToken = useCallback(async (): Promise<
@@ -229,7 +225,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           };
         });
       }
-    } catch (err) {
+    } catch {
       resetAuthContext();
     }
   }, [getRefreshToken]);

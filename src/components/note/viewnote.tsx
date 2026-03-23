@@ -13,7 +13,9 @@ const ViewNote = (props: NoteEditorView) => {
   const [isSplitScreen, setIsSplitScreen] = useState(splitscreen);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const updateViewText = (a: any) => {
+  const updateViewText = (
+    a: string | ((prev: string) => string),
+  ): void => {
     props.updatedViewText(a);
   };
 

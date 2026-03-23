@@ -1,1 +1,0 @@
-import{j as e}from"./index-B4Srcv8_.js";const t="_page_footer_ayyky_1",a="_page_footer_container_ayyky_29",o={page_footer:t,page_footer_container:a},n=r=>e.jsx("div",{className:o.page_footer,children:e.jsx("div",{className:o.page_footer_container,children:r.children})});export{n as F};

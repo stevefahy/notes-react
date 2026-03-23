@@ -3,8 +3,6 @@ import { Outlet, useLocation } from "react-router-dom";
 
 import MainNavigation from "./main-navigation";
 import SnackbarView from "../ui/snackbar-view";
-import { QueryParamProvider } from "use-query-params";
-import { ReactRouter6Adapter } from "use-query-params/adapters/react-router-6";
 const setScreenHeight = () => {
   if (typeof window !== "undefined" && typeof document !== "undefined") {
     const jsvh = window.innerHeight;
@@ -41,9 +39,7 @@ const Layout = () => {
       <div className="app-shell">
         {!isLoginPage && <MainNavigation />}
         <main className={isLoginPage ? "login-page" : undefined}>
-          <QueryParamProvider adapter={ReactRouter6Adapter}>
-            <Outlet />
-          </QueryParamProvider>
+          <Outlet />
         </main>
         <SnackbarView />
       </div>

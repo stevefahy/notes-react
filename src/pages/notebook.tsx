@@ -29,6 +29,7 @@ import { moveNotes } from "../helpers/moveNotes";
 import { deleteNotebook } from "../helpers/deleteNotebook";
 import { editNotebook } from "../helpers/editNotebook";
 import APPLICATION_CONSTANTS from "../application_constants/applicationConstants";
+import { useSortNotes } from "./notebook/useSortNotes";
 
 const useAuth = () => {
   return useContext(AuthContext);
@@ -63,24 +64,7 @@ const NotebookPage = () => {
     [dispatch],
   );
 
-  const sortNotes = useCallback((notes: Note[]) => {
-    // Add an update date for sorting if one does not exist
-    notes.forEach((x) => {
-      if (x.updatedAt === "No date" || undefined) {
-        x.updatedAt = "December 17, 1995 03:24:00";
-      }
-    });
-    notes
-      .sort((a, b) => {
-        if (a.updatedAt !== undefined && b.updatedAt !== undefined) {
-          return new Date(a.updatedAt) > new Date(b.updatedAt) ? 1 : -1;
-        } else {
-          return a.updatedAt !== undefined ? 1 : -1;
-        }
-      })
-      .reverse();
-    return notes;
-  }, []);
+  const sortNotes = useSortNotes();
 
   useEffect(() => {
     if (notification_editing.status === true) {
@@ -234,7 +218,7 @@ const NotebookPage = () => {
 
   const resetNotesSelected = () => {
     setIsSelected((state) => {
-      let newarray: SelectedNote = { selected: [] };
+      const newarray: SelectedNote = { selected: [] };
       return { ...state, selected: newarray.selected };
     });
   };
@@ -270,12 +254,12 @@ const NotebookPage = () => {
           // update the notes array to delete the notes from state
           setNotes((prev) => {
             let oldarray: Note[];
-            let newarray: Note[] = [];
+            const newarray: Note[] = [];
             if (prev) {
               oldarray = [...prev];
               let i = oldarray.length;
               while (i--) {
-                var obj = oldarray[i];
+                const obj = oldarray[i];
                 if (notesSelected.indexOf(obj._id) === -1) {
                   // Not Item to be removed found
                   newarray.push(obj);
@@ -297,7 +281,7 @@ const NotebookPage = () => {
               new Date(updatedNotesLatestDate).getTime() !==
               new Date(NotesLatestDate).getTime()
             ) {
-              let nID = String(notebookId);
+              const nID = String(notebookId);
               updateNotebookDate(nID, updatedNotesLatestDate);
             }
           }
@@ -326,6 +310,9 @@ const NotebookPage = () => {
           return;
         }
         if (response.success) {
+          setNotebook((prev) =>
+            prev ? { ...prev, updatedAt: notebookUpdated } : prev,
+          );
         }
       } catch (err) {
         reportError(err, false);
@@ -401,16 +388,16 @@ const NotebookPage = () => {
   };
 
   const getLatestUpdated = (selected: string[]) => {
-    let found_notes = [];
+    const found_notes = [];
     for (const i in selected) {
       if (notes) {
-        var result = notes.filter((obj) => {
+        const result = notes.filter((obj) => {
           return obj._id === selected[i];
         });
         found_notes.push(result[0]);
       }
     }
-    let selected_notes = sortNotes(found_notes);
+    const selected_notes = sortNotes(found_notes);
     return selected_notes[0].updatedAt;
   };
 
@@ -440,12 +427,12 @@ const NotebookPage = () => {
           // update the notes array to delete the notes from state
           setNotes((prev) => {
             let oldarray: Note[];
-            let newarray: Note[] = [];
+            const newarray: Note[] = [];
             if (prev) {
               oldarray = [...prev];
               let i = oldarray.length;
               while (i--) {
-                var obj = oldarray[i];
+                const obj = oldarray[i];
                 if (notesSelected.indexOf(obj._id) === -1) {
                   // Not Item to be removed found
                   newarray.push(obj);
@@ -463,7 +450,7 @@ const NotebookPage = () => {
             updatedNotesLatestDate !== undefined &&
             notebookId !== undefined
           ) {
-            let nID = String(notebookId);
+            const nID = String(notebookId);
             updateNotebookDate(nID, updatedNotesLatestDate);
           }
           // Close the dialogue

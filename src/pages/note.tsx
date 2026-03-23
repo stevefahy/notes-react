@@ -22,6 +22,7 @@ import { getNotebook } from "../helpers/getNotebook";
 import { getNote } from "../helpers/getNote";
 import { createNote } from "../helpers/createNote";
 import { saveNote } from "../helpers/saveNote";
+import { useWelcomeNoteBody } from "./note/useWelcomeNoteBody";
 
 const useAuth = () => {
   return useContext(AuthContext);
@@ -41,7 +42,7 @@ const NotePage = () => {
   const navigate = useNavigate();
 
   const { width, height } = useWindowDimensions();
-  const [WELCOME_NOTE, setWELCOME_NOTE] = useState("");
+  const WELCOME_NOTE = useWelcomeNoteBody();
 
   const reportError = useCallback(
     (err: unknown, fromServer?: boolean) => {
@@ -49,12 +50,6 @@ const NotePage = () => {
     },
     [dispatch],
   );
-
-  useEffect(() => {
-    fetch("/assets/markdown/welcome_markdown.md")
-      .then((response) => response.text())
-      .then((text) => setWELCOME_NOTE(text));
-  }, []);
 
   useEffect(() => {
     if (width < APPLICATION_CONSTANTS.SPLITSCREEN_MINIMUM_WIDTH) {

@@ -6,8 +6,6 @@ import {
   RouterProvider,
   useLocation,
 } from "react-router-dom";
-import { QueryParamProvider } from "use-query-params";
-import { ReactRouter6Adapter } from "use-query-params/adapters/react-router-6";
 import Layout from "./components/layout/layout";
 import LoginPage from "./pages/LoginPage";
 import LoadingScreen from "./components/ui/loading-screen";
@@ -62,7 +60,7 @@ function IndexRedirect() {
 }
 
 function NoMatch() {
-  return <p>There's nothing here: 404!</p>;
+  return <p>There&apos;s nothing here: 404!</p>;
 }
 
 const router = createBrowserRouter([

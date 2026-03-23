@@ -10,3 +10,8 @@ declare module "markdown-it-abbr";
 declare module "markdown-it-attrs";
 declare module "markdown-it-task-checkbox";
 declare module "markdown-it-container";
+
+declare module "markdown-it-emoji/lib/data/light.mjs" {
+  const defs: Record<string, string>;
+  export default defs;
+}

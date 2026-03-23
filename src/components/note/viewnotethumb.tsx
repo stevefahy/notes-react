@@ -5,15 +5,16 @@ import classes from "./viewnotethumb.module.css";
 import { SkeletonBlock } from "../ui/skeleton-block";
 import ViewNoteMarkdown from "./viewnote_markdown";
 
-const ViewNoteThumb = (props: any) => {
+type ViewNoteThumbProps = { text: string };
+
+const ViewNoteThumb = (props: ViewNoteThumbProps) => {
   const { content: rawContent } = matter(props.text);
   const content = truncateMarkdownPreview(rawContent);
 
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    let loadedTimer: NodeJS.Timeout;
-    loadedTimer = setTimeout(() => {
+    const loadedTimer = window.setTimeout(() => {
       setLoaded(true);
     }, 600);
     return () => {

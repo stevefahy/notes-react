@@ -7,7 +7,7 @@ import {
   MouseEvent,
 } from "react";
 import { Link } from "react-router-dom";
-import { SelectedNote, NotesProps } from "../../types";
+import { NotesProps } from "../../types";
 import DateFormat from "../ui/date-format";
 import ViewNoteThumb from "../note/viewnotethumb";
 import { extractNoteTitle, detectNoteTag } from "../../lib/noteCardUtils";
