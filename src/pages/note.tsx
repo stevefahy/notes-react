@@ -1,24 +1,23 @@
-import { useParams } from "react-router-dom";
-import { Fragment, useEffect, useCallback, useState, useContext } from "react";
-import { uiActions } from "../store/ui-slice";
-import { snackActions } from "../store/snack-slice";
+import { useParams, useNavigate, useBlocker } from "react-router-dom";
+import {
+  Fragment,
+  useEffect,
+  useCallback,
+  useState,
+  useContext,
+  useRef,
+} from "react";
 import { editActions } from "../store/edit-slice";
 import { useAppDispatch } from "../store/hooks";
-import classes from "./note.module.css";
+import { dispatchErrorSnack, dispatchSuccessSnack } from "../lib/dispatchSnack";
 import { initScrollSync } from "../lib/scroll_sync";
 import useWindowDimensions from "../lib/useWindowDimension";
 import APPLICATION_CONSTANTS from "../application_constants/applicationConstants";
 import { AuthContext } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 import Footer from "../components/layout/footer";
 import EditNote from "../components/note/editnote";
 import ViewNote from "../components/note/viewnote";
 import LoadingScreen from "../components/ui/loading-screen";
-import Fab from "@mui/material/Fab";
-import EditIcon from "@mui/icons-material/Edit";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import EggIcon from "@mui/icons-material/Egg";
 import { getNotebook } from "../helpers/getNotebook";
 import { getNote } from "../helpers/getNote";
 import { createNote } from "../helpers/createNote";
@@ -26,6 +25,11 @@ import { saveNote } from "../helpers/saveNote";
 
 const useAuth = () => {
   return useContext(AuthContext);
+};
+
+type PersistOpts = {
+  showSnack: boolean;
+  switchToViewAfterSave: boolean;
 };
 
 const NotePage = () => {
@@ -36,26 +40,18 @@ const NotePage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  let new_note = false;
-
   const { width, height } = useWindowDimensions();
   const [WELCOME_NOTE, setWELCOME_NOTE] = useState("");
 
-  const showNotification = useCallback(
-    (msg: string) => {
-      dispatch(
-        uiActions.showNotification({
-          status: "error",
-          title: "Error!",
-          message: msg,
-        })
-      );
+  const reportError = useCallback(
+    (err: unknown, fromServer?: boolean) => {
+      dispatchErrorSnack(dispatch, err, fromServer);
     },
-    [dispatch]
+    [dispatch],
   );
 
   useEffect(() => {
-    fetch("/md/welcome_markdown.md")
+    fetch("/assets/markdown/welcome_markdown.md")
       .then((response) => response.text())
       .then((text) => setWELCOME_NOTE(text));
   }, []);
@@ -70,31 +66,30 @@ const NotePage = () => {
   }, [width, height]);
 
   useEffect(() => {
-    // Wait for the Markdown to load before initializing scroll sync
     setTimeout(() => {
       initScrollSync();
     }, 500);
   }, []);
 
-  if (noteId === "create-note") {
-    new_note = true;
-  }
-
   const [viewText, setViewText] = useState("");
   const [loadedText, setLoadedText] = useState("");
   const [isChanged, setIsChanged] = useState(false);
-  const [autoSave, setAutoSave] = useState(false);
-  const [isView, setIsView] = useState(new_note);
+  const [isView, setIsView] = useState(noteId !== "create-note");
   const [isSplitScreen, setIsplitScreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isCreate, setIsCreate] = useState(new_note);
+  const [isCreate, setIsCreate] = useState(noteId === "create-note");
   const [originalText, setOriginalText] = useState("");
   const [updateEditTextProp, setUpdateEditTextProp] = useState("");
   const [noteLoaded, setNoteLoaded] = useState(false);
   const [notebookLoaded, setNotebookLoaded] = useState(false);
 
   useEffect(() => {
-    // Get the Note
+    const creating = noteId === "create-note";
+    setIsCreate(creating);
+    setIsView(!creating);
+  }, [noteId]);
+
+  useEffect(() => {
     (async () => {
       if (
         !isCreate &&
@@ -109,7 +104,7 @@ const NotePage = () => {
           const response = await getNote(token, notebookId, noteId);
           setNoteLoaded(true);
           if (response.error) {
-            showNotification(`${response.error}`);
+            reportError(response.error, response.fromServer);
             return;
           }
           if (response.success) {
@@ -119,7 +114,7 @@ const NotePage = () => {
             setNoteLoaded(true);
           }
         } catch (err) {
-          showNotification(`${err}`);
+          reportError(err, false);
           setNoteLoaded(true);
           return;
         }
@@ -128,7 +123,6 @@ const NotePage = () => {
       }
     })();
 
-    // Get the Notebook
     (async () => {
       if (!notebookLoaded && token && notebookId) {
         setNotebookLoaded(false);
@@ -136,18 +130,18 @@ const NotePage = () => {
           const response = await getNotebook(token, notebookId);
           setNotebookLoaded(true);
           if (response.error) {
-            showNotification(`${response.error}`);
+            reportError(response.error, response.fromServer);
             return;
           }
           if (response.success) {
             dispatch(
               editActions.editChange({
                 message: response.notebook,
-              })
+              }),
             );
           }
         } catch (err) {
-          showNotification(`${err}`);
+          reportError(err, false);
           setNotebookLoaded(true);
           return;
         }
@@ -161,7 +155,7 @@ const NotePage = () => {
     isCreate,
     noteLoaded,
     notebookLoaded,
-    showNotification,
+    reportError,
   ]);
 
   const toggleEditHandlerCallback = useCallback(() => {
@@ -172,64 +166,99 @@ const NotePage = () => {
     setIsplitScreen(!isSplitScreen);
   }, [isSplitScreen]);
 
-  const saveNoteCallback = useCallback(async () => {
-    if (token && notebookId && noteId && viewText) {
-      let response;
+  const persistNote = useCallback(
+    async (opts: PersistOpts): Promise<boolean> => {
+      if (!token || !notebookId || !noteId || !viewText || isCreate) {
+        return true;
+      }
+      if (!isChanged) {
+        return true;
+      }
       try {
-        response = await saveNote(token, notebookId, noteId, viewText);
+        const response = await saveNote(token, notebookId, noteId, viewText);
         if (response.error) {
-          showNotification(`${response.error}`);
-          return;
+          reportError(response.error, response.fromServer);
+          return false;
         }
         if (response.success) {
           setIsChanged(false);
-          setAutoSave(false);
           setOriginalText(viewText);
-          // Change to View Mode
-          if (isView) {
+          if (opts.showSnack) {
+            dispatchSuccessSnack(dispatch, "Note Saved");
+          }
+          if (opts.switchToViewAfterSave && !isView) {
             toggleEditHandlerCallback();
           }
-          return response;
+          return true;
         }
       } catch (err) {
-        showNotification(`${err}`);
-        return;
+        reportError(err, false);
+        return false;
       }
-    }
-  }, [
-    isView,
-    noteId,
-    notebookId,
-    toggleEditHandlerCallback,
-    viewText,
-    token,
-    showNotification,
-  ]);
+      return false;
+    },
+    [
+      isView,
+      noteId,
+      notebookId,
+      viewText,
+      token,
+      reportError,
+      dispatch,
+      isChanged,
+      isCreate,
+      toggleEditHandlerCallback,
+    ],
+  );
+
+  const persistRef = useRef(persistNote);
+  persistRef.current = persistNote;
+
+  const shouldBlock = useCallback(
+    ({
+      currentLocation,
+      nextLocation,
+    }: {
+      currentLocation: { pathname: string };
+      nextLocation: { pathname: string };
+    }) =>
+      isChanged &&
+      !isCreate &&
+      currentLocation.pathname !== nextLocation.pathname,
+    [isChanged, isCreate],
+  );
+
+  const blocker = useBlocker(shouldBlock);
 
   useEffect(() => {
-    if (autoSave && isChanged && (isView || isChanged) && !isCreate) {
-      const noteSaved = async () => {
-        await saveNoteCallback();
-        setAutoSave(false);
-        setIsChanged(false);
-      };
-      noteSaved();
-      return () => {
-        // component unmounts
-      };
-    }
-  }, [autoSave, isChanged, isView, isCreate, saveNoteCallback]);
+    if (blocker.state !== "blocked") return;
 
-  useEffect(() => {
-    if (autoSave) {
-      dispatch(
-        snackActions.showSnack({
-          status: true,
-          message: "Note Saved",
-        })
-      );
-    }
-  }, [autoSave, dispatch]);
+    let cancelled = false;
+
+    (async () => {
+      const ok = await persistRef.current({
+        showSnack: true,
+        switchToViewAfterSave: false,
+      });
+      if (cancelled) return;
+      if (ok) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [blocker.state, blocker]);
+
+  const handleSaveNoteClick = useCallback(() => {
+    void persistNote({
+      showSnack: true,
+      switchToViewAfterSave: true,
+    });
+  }, [persistNote]);
 
   const exampleNote = () => {
     if (!isMobile) {
@@ -238,26 +267,23 @@ const NotePage = () => {
     updatedViewTextHandler(WELCOME_NOTE);
   };
 
-  // Create Note
   const createNotePost = async () => {
     if (token && notebookId && viewText) {
-      setAutoSave(false);
       const note_obj = { notebookId: notebookId, note: viewText };
       try {
         const response = await createNote(token, note_obj);
         setNotebookLoaded(true);
         if (response.error) {
-          showNotification(`${response.error}`);
+          reportError(response.error, response.fromServer);
           return;
         }
         if (response.success) {
           setIsCreate(false);
           setIsChanged(false);
-          setAutoSave(false);
           navigate(`/notebook/${notebookId}`);
         }
       } catch (err) {
-        showNotification(`${err}`);
+        reportError(err, false);
         return;
       }
     }
@@ -271,7 +297,7 @@ const NotePage = () => {
         setIsChanged(false);
       }
     },
-    [originalText]
+    [originalText],
   );
 
   const updatedViewTextHandler = useCallback(
@@ -283,128 +309,187 @@ const NotePage = () => {
         return next;
       });
     },
-    [updateIsChanged]
+    [updateIsChanged],
   );
-
-  const onRouteChangeStart = useCallback(() => {
-    if (isChanged && !isCreate) {
-      setAutoSave(true);
-    }
-  }, [isChanged, isCreate]);
-
-  useEffect(() => {
-    const popStateListener = () => {
-      onRouteChangeStart();
-    };
-    window.addEventListener("popstate", popStateListener);
-    return () => {
-      window.removeEventListener("popstate", popStateListener);
-    };
-  }, [onRouteChangeStart]);
 
   return (
     <Fragment>
       {(!noteLoaded || token === null) && <LoadingScreen />}
       <div className="page_scrollable_header_breadcrumb_footer">
         {noteLoaded && token !== null && (
-          <div className={classes.view_container} id="view_container">
-            <ViewNoteMemo
-              visible={!isView}
-              splitScreen={isSplitScreen}
-              viewText={viewText}
-              updatedViewText={updatedViewTextHandler}
-            />
+          <div
+            className={`view_container${
+              isSplitScreen ? " editnote_box_split" : ""
+            }`}
+            id="view_container"
+          >
             <EditNoteMemo
-              visible={isView}
+              visible={!isView || isSplitScreen}
               splitScreen={isSplitScreen}
               loadedText={loadedText}
               updateViewText={updatedViewTextHandler}
               passUpdatedViewText={updateEditTextProp}
+            />
+            <ViewNoteMemo
+              visible={isView || isSplitScreen}
+              splitScreen={isSplitScreen}
+              viewText={viewText}
+              updatedViewText={updatedViewTextHandler}
             />
           </div>
         )}
       </div>
 
       <Footer>
-        {noteLoaded && viewText.length > 0 && !isCreate && isChanged && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={saveNoteCallback}
-          >
-            <AddCircleIcon sx={{ mr: 1 }} />
-            Save Note
-          </Fab>
-        )}
-        {noteLoaded && viewText.length > 0 && isCreate && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={createNotePost}
-          >
-            <AddCircleIcon sx={{ mr: 1 }} />
-            Create Note
-          </Fab>
-        )}
-        {noteLoaded && viewText.length === 0 && isCreate && (
-          <Fab
-            variant="extended"
-            color="primary"
-            size="medium"
-            onClick={exampleNote}
-            className="example_button"
-          >
-            <EggIcon sx={{ mr: 0 }} />
-            Example
-          </Fab>
-        )}
-        {noteLoaded && !isSplitScreen && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={toggleEditHandlerCallback}
-          >
-            {isView ? (
-              <VisibilityIcon sx={{ mr: 1 }} />
-            ) : (
-              <EditIcon sx={{ mr: 1 }} />
-            )}
-            {isView ? "View" : "Edit"}
-          </Fab>
-        )}
-
-        {noteLoaded && !isMobile && (
-          <Fab
-            variant="extended"
-            color="primary"
-            size="medium"
-            onClick={toggleSplitHandlerCallback}
-            className="split_screen_button"
-          >
-            {isSplitScreen ? (
-              <span className="split_screen_icon">
-                <img
-                  src="/images/split_screen_icon_single.png"
-                  alt="split screen icon"
-                  width="30"
-                  height="30"
-                />
-              </span>
-            ) : (
-              <span className="split_screen_icon">
-                <img
-                  src="/images/split_screen_icon_double.png"
-                  alt="split screen icon"
-                  width="30"
-                  height="30"
-                />
-              </span>
-            )}
-          </Fab>
-        )}
+        {noteLoaded ? (
+          <div className="nb-footer-row">
+            {viewText.length > 0 && !isCreate && isChanged ? (
+              <button
+                type="button"
+                className="btn-action-primary"
+                onClick={handleSaveNoteClick}
+              >
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+                Save Note
+              </button>
+            ) : null}
+            {viewText.length > 0 && isCreate ? (
+              <button
+                type="button"
+                className="btn-action-primary"
+                onClick={() => void createNotePost()}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M6 1v10M1 6h10"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Create Note
+              </button>
+            ) : null}
+            {viewText.length === 0 && isCreate ? (
+              <button
+                type="button"
+                className="btn-action-ghost example_button"
+                onClick={exampleNote}
+              >
+                <span className="material-symbols-outlined" aria-hidden>
+                  egg
+                </span>
+                Example
+              </button>
+            ) : null}
+            {!isSplitScreen ? (
+              <button
+                type="button"
+                className="btn-action-ghost"
+                onClick={toggleEditHandlerCallback}
+                aria-label={isView ? "Switch to Edit" : "Switch to View"}
+              >
+                {isView ? (
+                  <>
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    Edit
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    View
+                  </>
+                )}
+              </button>
+            ) : null}
+            {!isMobile ? (
+              <button
+                type="button"
+                className="btn-action-ghost"
+                onClick={toggleSplitHandlerCallback}
+                aria-label="Toggle split screen"
+              >
+                {isSplitScreen ? (
+                  <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <rect x="6" y="2" width="12" height="20" rx="2" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <rect x="2" y="2" width="8" height="20" rx="2" />
+                    <rect x="14" y="2" width="8" height="20" rx="2" />
+                  </svg>
+                )}
+                Split Screen
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </Footer>
     </Fragment>
   );

@@ -1,16 +1,8 @@
-import { useState, useEffect, Fragment, memo, lazy, Suspense } from "react";
-import matter from "gray-matter";
-import classesShared from "./editviewnote_shared.module.css";
+import { useState, useEffect, Fragment, memo } from "react";
+import matter from "../../lib/matter";
 import { NoteEditorView } from "../../types";
-import { Skeleton } from "@mui/material";
-import { Buffer } from "buffer";
-
-const ViewNoteMarkdown = lazy(() => import("./viewnote_markdown"));
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-
-// Required for gray-matter library
-window.Buffer = window.Buffer || Buffer;
+import { SkeletonBlock } from "../ui/skeleton-block";
+import ViewNoteMarkdown from "./viewnote_markdown";
 
 const ViewNote = (props: NoteEditorView) => {
   const splitscreen = props.splitScreen;
@@ -37,37 +29,40 @@ const ViewNote = (props: NoteEditorView) => {
     setIsSplitScreen(splitscreen);
   }, [splitscreen]);
 
+  const viewPaneClassName = [
+    "view",
+    "editnote_box",
+    isSplitScreen && "view_split",
+    isSplitScreen && "show",
+    !isSplitScreen && isVisible && "show",
+    !isSplitScreen && !isVisible && "hide",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <Fragment>
-      <div
-        id="view"
-        className={`view ${
-          isSplitScreen ? `view_split ${classesShared.show}` : ""
-        } ${classesShared.editnote_box} ${
-          isVisible ? classesShared.show : classesShared.hide
-        }`}
-      >
-        <Card sx={{ width: "100%" }}>
-          <CardContent>
-            <article
-              id="viewnote_id"
-              className={`viewnote_content viewer ${classesShared.viewnote_content}`}
-            >
-              {!isLoaded ? (
-                <Skeleton variant="rounded" height={50} />
-              ) : (
-                <Suspense fallback={<Skeleton variant="rounded" height={50} />}>
-                  <ViewNoteMarkdown
-                    splitScreen={splitscreen}
-                    viewText={contextView}
-                    updatedViewText={updateViewText}
-                    disableLinks={false}
-                  />
-                </Suspense>
-              )}
-            </article>
-          </CardContent>
-        </Card>
+      <div id="view" className={viewPaneClassName}>
+        <div className="note-card">
+          <div
+            id="viewnote_id"
+            className="v-card-text cardcontent viewnote_content"
+          >
+            {!isLoaded ? (
+              <SkeletonBlock
+                className="skeleton-view-placeholder"
+                height={50}
+              />
+            ) : (
+              <ViewNoteMarkdown
+                splitScreen={splitscreen}
+                viewText={contextView}
+                updatedViewText={updateViewText}
+                disableLinks={false}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </Fragment>
   );

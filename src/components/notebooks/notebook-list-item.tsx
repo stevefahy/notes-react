@@ -1,70 +1,65 @@
 import { Link } from "react-router-dom";
-import classes from "./notebooks-list.module.css";
 import DateFormat from "../ui/date-format";
 import { Fragment, useEffect, useState } from "react";
 import { NotebookItem } from "../../types";
-import { Card, CardContent, Skeleton } from "@mui/material";
+import { getDisplayCover } from "../../lib/notebookCoverUtils";
 
 const NotebookListItem = (props: NotebookItem) => {
   const { notebook_item } = props;
   const [notebookLoaded, setNotebookLoaded] = useState(false);
+  const displayCover = getDisplayCover(notebook_item.notebook_cover);
 
   useEffect(() => {
-    let loadedTimer: NodeJS.Timeout;
-    loadedTimer = setTimeout(() => {
-      setNotebookLoaded(true);
-    }, 100);
-    return () => {
-      clearTimeout(loadedTimer);
-    };
+    const loadedTimer = window.setTimeout(() => setNotebookLoaded(true), 100);
+    return () => clearTimeout(loadedTimer);
   }, [notebook_item]);
 
-  const notebook_item_html = (
-    <li className={`${classes.notebooks_list_bg}`}>
-      <Card sx={{ width: "100%" }}>
-        <CardContent className={classes.cardcontent}>
-          <div className={classes.notebooks_list_outer}>
-            <div
-              className={`${classes.notebooks_list_left}  ${
-                classes[
-                  !notebookLoaded ? "" : "tab_" + notebook_item.notebook_cover
-                ]
-              }`}
-            >
-              {!notebookLoaded ? (
-                <Skeleton variant="rounded" sx={{ height: "100%" }} />
-              ) : (
-                ""
-              )}
-            </div>
-            <div className={classes.notebooks_list_right}>
-              {!notebookLoaded ? (
-                <Fragment>
-                  <Skeleton variant="text" />
-                  <Skeleton variant="text" />
-                </Fragment>
-              ) : (
-                <Fragment>
-                  <div>{notebook_item.notebook_name}</div>
-                  <div className="date_format">
-                    <DateFormat dateString={notebook_item.updatedAt!} />
-                  </div>
-                </Fragment>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </li>
-  );
+  const count = notebook_item.noteCount;
 
   return (
     <Fragment>
       {!notebookLoaded ? (
-        notebook_item_html
+        <li className="notebooks_list_bg">
+          <div className="vcard">
+            <div className="cardcontent" />
+            <div className="notebooks_list_outer">
+              <div className="notebooks_list_left tab_loading">
+                <div className="nb-spine-loading" />
+              </div>
+              <div className="notebooks_list_right">
+                <div>...</div>
+              </div>
+            </div>
+          </div>
+        </li>
       ) : (
-        <Link to={`/notebook/${notebook_item._id}`} key={notebook_item._id}>
-          {notebook_item_html}
+        <Link
+          to={`/notebook/${notebook_item._id}`}
+          className="notebook-link"
+          key={notebook_item._id}
+        >
+          <li className="notebooks_list_bg">
+            <div className="vcard">
+              <div className="cardcontent" />
+              <div className="notebooks_list_outer">
+                <div className={`notebooks_list_left tab_${displayCover}`}>
+                  <div className={`nb-spine-${displayCover}`} />
+                </div>
+                <div className="notebooks_list_right">
+                  <div>{notebook_item.notebook_name}</div>
+                  <div className="date_format">
+                    <DateFormat dateString={notebook_item.updatedAt!} />
+                  </div>
+                </div>
+                {count !== undefined && (
+                  <span className="nb-count">
+                    {count} {count === 1 ? "note" : "notes"}
+                  </span>
+                )}
+                <div className="notebooks_list_arrow">›</div>
+              </div>
+            </div>
+          </li>
         </Link>
       )}
     </Fragment>

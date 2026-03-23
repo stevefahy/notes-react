@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
       "process.env": JSON.stringify(env),
     },
     plugins: [react(), markdown()],
+    optimizeDeps: {
+      include: ["prismjs"],
+    },
     server: {
       proxy: {
         "/api": {
@@ -26,40 +29,20 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: false,
       rollupOptions: {
-        onwarn(warning, warn) {
-          // Suppress gray-matter eval warning (third-party library issue, not a security problem	)
-          if (
-            warning.code === "EVAL" ||
-            (warning.message && warning.message.includes("gray-matter"))
-          ) {
-            return;
-          }
-          warn(warning);
-        },
         output: {
           manualChunks: {
             "react-vendor": ["react", "react-dom", "react-router-dom"],
-            "mui-vendor": [
-              "@mui/material",
-              "@mui/icons-material",
-              "@emotion/react",
-              "@emotion/styled",
-            ],
             "markdown-vendor": [
-              "react-markdown",
-              "remark-gfm",
-              "remark-directive",
-              "remark-directive-rehype",
-              "remark-emoji",
-              "remark-smartypants",
-              "remark-supersub",
-              "rehype-sanitize",
-              "rehype-raw",
-              "rehype-slug",
-              "gray-matter",
-              "unist-util-visit",
+              "markdown-it",
+              "markdown-it-emoji",
+              "markdown-it-footnote",
+              "markdown-it-task-checkbox",
+              "markdown-it-container",
+              "markdown-it-anchor",
+              "front-matter",
+              "js-yaml",
+              "prismjs",
             ],
-            "syntax-highlighter": ["react-syntax-highlighter"],
             "redux-vendor": ["@reduxjs/toolkit", "react-redux"],
           },
         },

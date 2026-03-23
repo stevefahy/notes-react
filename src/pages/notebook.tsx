@@ -4,8 +4,6 @@ import {
   useState,
   useEffect,
   useCallback,
-  lazy,
-  Suspense,
   memo,
 } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -13,17 +11,15 @@ import { Note, Notebook, SelectedNote } from "../types";
 import { AuthContext } from "../context/AuthContext";
 import LoadingScreen from "../components/ui/loading-screen";
 import NoteList from "../components/notebooks/note-list";
-import { uiActions } from "../store/ui-slice";
+import SelectNotebookForm from "../components/notebooks/select-notebook-form";
+import AddNotebookForm from "../components/notebooks/add-notebook-form";
+import { dispatchErrorSnack } from "../lib/dispatchSnack";
+import { toLegacyCover, type NotebookCoverType } from "../lib/folder-options";
 import { editActions } from "../store/edit-slice";
+import { editNotesActions } from "../store/edit-notes-slice";
 import { useAppDispatch } from "../store/hooks";
 import { useAppSelector } from "../store/hooks";
 import Footer from "../components/layout/footer";
-import Fab from "@mui/material/Fab";
-import EditIcon from "@mui/icons-material/Edit";
-import CancelIcon from "@mui/icons-material/Cancel";
-import DeleteIcon from "@mui/icons-material/Delete";
-import FlipToFrontIcon from "@mui/icons-material/FlipToFront";
-import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import { getNotebooks } from "../helpers/getNotebooks";
 import { getNotebook } from "../helpers/getNotebook";
 import { getNotes } from "../helpers/getNotes";
@@ -32,13 +28,7 @@ import { editNotebookDate } from "../helpers/editNotebookDate";
 import { moveNotes } from "../helpers/moveNotes";
 import { deleteNotebook } from "../helpers/deleteNotebook";
 import { editNotebook } from "../helpers/editNotebook";
-
-const SelectNotebookForm = lazy(
-  () => import("../components/notebooks/select-notebook-form")
-);
-const AddNotebookForm = lazy(
-  () => import("../components/notebooks/add-notebook-form")
-);
+import APPLICATION_CONSTANTS from "../application_constants/applicationConstants";
 
 const useAuth = () => {
   return useContext(AuthContext);
@@ -66,17 +56,11 @@ const NotebookPage = () => {
   const [editNotes, setEditNotes] = useState(false);
   const [clearEditNotes, setClearEditNotes] = useState(false);
 
-  const showNotification = useCallback(
-    (msg: string) => {
-      dispatch(
-        uiActions.showNotification({
-          status: "error",
-          title: "Error!",
-          message: msg,
-        })
-      );
+  const reportError = useCallback(
+    (err: unknown, fromServer?: boolean) => {
+      dispatchErrorSnack(dispatch, err, fromServer);
     },
-    [dispatch]
+    [dispatch],
   );
 
   const sortNotes = useCallback((notes: Note[]) => {
@@ -115,6 +99,12 @@ const NotebookPage = () => {
   }, [notesLoadedDelay]);
 
   useEffect(() => {
+    return () => {
+      dispatch(editNotesActions.resetEditNotes());
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
     if (!notebookId || !token) {
       return;
     }
@@ -128,7 +118,7 @@ const NotebookPage = () => {
           const response = await getNotes(token, notebookId);
           setNotebookLoaded(true);
           if (response.error) {
-            showNotification(`${response.error}`);
+            reportError(response.error, response.fromServer);
             return;
           }
           if (response.success) {
@@ -137,7 +127,7 @@ const NotebookPage = () => {
             setNotesLoadedDelay(true);
           }
         } catch (err) {
-          showNotification(`${err}`);
+          reportError(err, false);
           setNotesLoadedDelay(true);
           return;
         }
@@ -152,7 +142,7 @@ const NotebookPage = () => {
           const response = await getNotebook(token, notebookId);
           setNotebookLoaded(true);
           if (response.error) {
-            showNotification(`${response.error}`);
+            reportError(response.error, response.fromServer);
             return;
           }
           if (response.success) {
@@ -160,11 +150,11 @@ const NotebookPage = () => {
             dispatch(
               editActions.editChange({
                 message: response.notebook,
-              })
+              }),
             );
           }
         } catch (err) {
-          showNotification(`${err}`);
+          reportError(err, false);
           setNotebookLoaded(true);
           return;
         }
@@ -179,14 +169,14 @@ const NotebookPage = () => {
           const response = await getNotebooks(token);
           setNotebooksLoaded(true);
           if (response.error) {
-            showNotification(`${response.error}`);
+            reportError(response.error, response.fromServer);
             return;
           }
           if (response.success) {
             setUserNotebooks(response.notebooks);
           }
         } catch (err) {
-          showNotification(`${err}`);
+          reportError(err, false);
           setNotebooksLoaded(true);
           return;
         }
@@ -200,12 +190,16 @@ const NotebookPage = () => {
     notebookLoaded,
     notebooksLoaded,
     notesLoaded,
-    showNotification,
+    reportError,
   ]);
 
-  const updateSelected = (selected: SelectedNote) => {
-    setIsSelected(selected);
-  };
+  const updateSelected = useCallback(
+    (selected: SelectedNote) => {
+      setIsSelected(selected);
+      dispatch(editNotesActions.updateSelectedCount(selected.selected.length));
+    },
+    [dispatch],
+  );
 
   const moveNoteFormHandler = () => {
     setMoveNote(true);
@@ -230,6 +224,12 @@ const NotebookPage = () => {
   const editNoteFormHandler = () => {
     setEditNotes(true);
     setClearEditNotes(false);
+    dispatch(
+      editNotesActions.setActiveAndCount({
+        active: true,
+        selectedCount: isSelected?.selected.length ?? 0,
+      }),
+    );
   };
 
   const resetNotesSelected = () => {
@@ -243,11 +243,12 @@ const NotebookPage = () => {
     setEditNotes(false);
     setClearEditNotes(true);
     resetNotesSelected();
+    dispatch(editNotesActions.resetEditNotes());
   };
 
   const updateNotebookDate = (
     notebookId: string,
-    notebookLatesDate: string
+    notebookLatesDate: string,
   ) => {
     editNotebookDateHandler(notebookId, notebookLatesDate);
   };
@@ -260,7 +261,7 @@ const NotebookPage = () => {
         const response = await deleteNotes(token, notesSelected);
         setNotebookLoaded(true);
         if (response.error) {
-          showNotification(`${response.error}`);
+          reportError(response.error, response.fromServer);
           return;
         }
         if (response.success) {
@@ -303,7 +304,7 @@ const NotebookPage = () => {
           cancelEditNoteFormHandler();
         }
       } catch (err) {
-        showNotification(`${err}`);
+        reportError(err, false);
         return;
       }
     }
@@ -311,42 +312,46 @@ const NotebookPage = () => {
 
   const editNotebookDateHandler = async (
     notebookID: string,
-    notebookUpdated: string
+    notebookUpdated: string,
   ) => {
     if (token && notebookID && notebookUpdated) {
       try {
         const response = await editNotebookDate(
           token,
           notebookID,
-          notebookUpdated
+          notebookUpdated,
         );
         if (response.error) {
-          showNotification(`${response.error}`);
+          reportError(response.error, response.fromServer);
           return;
         }
         if (response.success) {
         }
       } catch (err) {
-        showNotification(`${err}`);
+        reportError(err, false);
         return;
       }
     }
   };
 
   const deleteNotebookHandler = async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      reportError(APPLICATION_CONSTANTS.ERROR_NETWORK, false);
+      return;
+    }
     const notebook_id = notebook!._id;
     if (token && notebook_id && notebook_id.length > 0) {
       try {
         const response = await deleteNotebook(token, notebook_id);
         if (response.error) {
-          showNotification(`${response.error}`);
+          reportError(response.error, response.fromServer);
           return;
         }
         if (response.success) {
           navigate(`/notebooks`);
         }
       } catch (err) {
-        showNotification(`${err}`);
+        reportError(err, false);
         return;
       }
     }
@@ -355,43 +360,44 @@ const NotebookPage = () => {
   const editNotebookHandler = async (
     notebookID: string,
     notebookName: string,
-    notebookCover: string,
-    notebookUpdated: string
-  ) => {
+    notebookCover: NotebookCoverType,
+    notebookUpdated: string,
+  ): Promise<boolean> => {
     if (
-      token &&
-      notebookID &&
-      notebookName &&
-      notebookCover &&
-      notebookUpdated
+      !token ||
+      !notebookID ||
+      !notebookName ||
+      !notebookCover ||
+      !notebookUpdated
     ) {
-      try {
-        const response = await editNotebook(
-          token,
-          notebookID,
-          notebookName,
-          notebookCover,
-          notebookUpdated
-        );
-        if (response.error) {
-          showNotification(`${response.error}`);
-          return;
-        }
-        if (response.success) {
-          setNotebook(response.notebook_edited);
-          dispatch(editActions.editStatus({ status: false }));
-          dispatch(
-            editActions.editChange({
-              message: response.notebook_edited,
-            })
-          );
-          setEnableEditNotebook(false);
-        }
-      } catch (err) {
-        showNotification(`${err}`);
-        return;
-      }
+      return false;
     }
+    try {
+      const response = await editNotebook(
+        token,
+        notebookID,
+        notebookName,
+        toLegacyCover(notebookCover),
+        notebookUpdated,
+      );
+      if (response.error) {
+        reportError(response.error, response.fromServer);
+        return false;
+      }
+      if (response.success) {
+        setNotebook(response.notebook_edited);
+        dispatch(editActions.editStatus({ status: false }));
+        dispatch(
+          editActions.editChange({
+            message: response.notebook_edited,
+          }),
+        );
+        return true;
+      }
+    } catch (err) {
+      reportError(err, false);
+    }
+    return false;
   };
 
   const getLatestUpdated = (selected: string[]) => {
@@ -423,10 +429,10 @@ const NotebookPage = () => {
           token,
           notebookID,
           notesSelected,
-          latestUpdatedDate
+          latestUpdatedDate,
         );
         if (response.error) {
-          showNotification(`${response.error}`);
+          reportError(response.error, response.fromServer);
           return;
         }
         if (response.success) {
@@ -466,7 +472,7 @@ const NotebookPage = () => {
           cancelEditNoteFormHandler();
         }
       } catch (err) {
-        showNotification(`${err}`);
+        reportError(err, false);
         return;
       }
     }
@@ -479,6 +485,7 @@ const NotebookPage = () => {
         <div className="page_scrollable_header_breadcrumb_footer_list">
           {notes && notebook && notesLoaded && (
             <NoteListMemo
+              key={notebookId}
               notes={notes}
               onNotesSelected={updateSelected}
               onNotesEdit={editNotes}
@@ -486,107 +493,136 @@ const NotebookPage = () => {
             />
           )}
           {moveNote && userNotebooks && (
-            <Suspense fallback={<div>Loading...</div>}>
-              <SelectNotebookForm
-                notebooks={userNotebooks}
-                moveNotes={moveNoteHandler}
-                onCancel={cancelHandler}
-              />
-            </Suspense>
+            <SelectNotebookForm
+              notebooks={userNotebooks}
+              currentNotebookId={notebookId ?? null}
+              moveNotes={moveNoteHandler}
+              onCancel={cancelHandler}
+            />
           )}
           {enableEditNotebook && (
-            <Suspense fallback={<div>Loading...</div>}>
-              <AddNotebookForm
-                method="edit"
-                notebook={notebook}
-                editNotebook={editNotebookHandler}
-                onCancel={cancelEditHandler}
-              />
-            </Suspense>
+            <AddNotebookForm
+              method="edit"
+              notebook={notebook}
+              editNotebook={editNotebookHandler}
+              onCancel={cancelEditHandler}
+            />
           )}
         </div>
       )}
       <Footer>
-        {notebookLoaded && notesLoaded && !editNotes && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={addNoteFormHandler}
-          >
-            <NoteAddIcon sx={{ mr: 1 }} />
-            Add Note
-          </Fab>
-        )}
-
-        {notebookLoaded &&
-          notesLoaded &&
-          !editNotes &&
-          notes &&
-          notes.length > 0 && (
-            <Fab
-              variant="extended"
-              color="secondary"
-              size="medium"
-              onClick={editNoteFormHandler}
-            >
-              <EditIcon sx={{ mr: 1 }} />
-              Edit Notes
-            </Fab>
-          )}
-
-        {notebookLoaded && notesLoaded && notes && notes.length < 1 && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={deleteNotebookHandler}
-          >
-            <DeleteIcon sx={{ mr: 1 }} />
-            Delete Notebook
-          </Fab>
-        )}
-
-        {notebookLoaded &&
-          notesLoaded &&
-          editNotes &&
-          isSelected &&
-          isSelected.selected.length > 0 && (
-            <Fragment>
-              <Fab
-                variant="extended"
-                color="secondary"
-                size="medium"
+        {notebookLoaded && notesLoaded ? (
+          <div className="nb-footer-row">
+            {!editNotes && notes && notes.length > 0 ? (
+              <button
+                type="button"
+                className="btn-action-ghost"
+                onClick={editNoteFormHandler}
+              >
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                  className="media_query_size"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Edit Notes
+              </button>
+            ) : null}
+            {!editNotes ? (
+              <button
+                type="button"
+                className="btn-action-primary"
+                onClick={addNoteFormHandler}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden
+                  className="media_query_size"
+                >
+                  <path
+                    d="M6 1v10M1 6h10"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Add Note
+              </button>
+            ) : null}
+            {notes && notes.length < 1 ? (
+              <button
+                type="button"
+                className="btn-action-danger"
+                onClick={deleteNotebookHandler}
+              >
+                <span className="icon_text">
+                  <span className="material-symbols-outlined button_icon danger">
+                    delete
+                  </span>
+                  Delete Notebook
+                </span>
+              </button>
+            ) : null}
+            {editNotes && isSelected && isSelected.selected.length > 0 ? (
+              <button
+                type="button"
+                className="btn-action-danger"
                 onClick={deleteNoteHandler}
               >
-                <DeleteIcon sx={{ mr: 1 }} />
-                Delete
-              </Fab>
-              {userNotebooks && userNotebooks.length > 1 && (
-                <Fab
-                  variant="extended"
-                  color="secondary"
-                  size="medium"
-                  onClick={moveNoteFormHandler}
-                >
-                  <FlipToFrontIcon sx={{ mr: 1 }} />
-                  Move
-                </Fab>
-              )}
-            </Fragment>
-          )}
-
-        {notebookLoaded && notesLoaded && editNotes && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={cancelEditNoteFormHandler}
-          >
-            <CancelIcon sx={{ mr: 1 }} />
-            Cancel
-          </Fab>
-        )}
+                <span className="icon_text">
+                  <span className="material-symbols-outlined button_icon danger media_query_size">
+                    delete
+                  </span>
+                  Delete
+                </span>
+              </button>
+            ) : null}
+            {editNotes &&
+            isSelected &&
+            isSelected.selected.length > 0 &&
+            userNotebooks &&
+            userNotebooks.length > 1 ? (
+              <button
+                type="button"
+                className="btn-action-ghost"
+                onClick={moveNoteFormHandler}
+              >
+                <span className="icon_text">
+                  <span className="material-symbols-outlined button_icon green symbol_size media_query_size">
+                    flip_to_front
+                  </span>
+                  Move to…
+                </span>
+              </button>
+            ) : null}
+            {editNotes ? (
+              <button
+                type="button"
+                className="btn-action-ghost"
+                onClick={cancelEditNoteFormHandler}
+              >
+                <span className="icon_text">
+                  <span className="material-symbols-outlined button_icon green media_query_size">
+                    cancel
+                  </span>
+                  Cancel
+                </span>
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </Footer>
     </Fragment>
   );

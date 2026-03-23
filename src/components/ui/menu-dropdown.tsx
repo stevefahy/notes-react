@@ -1,17 +1,6 @@
-import { useState, Fragment, useContext } from "react";
+import { useState, useContext, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import Box from "@mui/material/Box";
-import Avatar from "@mui/material/Avatar";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import Settings from "@mui/icons-material/Settings";
-import Logout from "@mui/icons-material/Logout";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import APPLICATION_CONSTANTS from "../../application_constants/applicationConstants";
 
 const AC = APPLICATION_CONSTANTS;
@@ -23,115 +12,112 @@ const useAuth = () => {
 export default function MenuDropdown() {
   const { authContext } = useAuth();
   const { loading, details, success, onLogout } = authContext;
-
   const navigate = useNavigate();
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  const [open, setOpen] = useState(false);
+  const [rippleKey, setRippleKey] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  const toggleMenu = () => {
+    setOpen((o) => !o);
+    setRippleKey((k) => k + 1);
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const close = useCallback(() => setOpen(false), []);
 
-  const handleProfile = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleProfile = () => {
+    close();
     navigate("/profile");
   };
 
-  const loginHandler = async (event: React.FormEvent) => {
-    event.preventDefault();
-    navigate(`${AC.LOGIN_PAGE}`);
+  const loginHandler = () => {
+    close();
+    navigate(AC.LOGIN_PAGE);
   };
 
-  return (
-    <Fragment>
-      <Box sx={{ display: "flex", alignItems: "center", textAlign: "center" }}>
-        <Tooltip title="Menu">
-          <IconButton
-            onClick={handleClick}
-            size="small"
-            sx={{ ml: 2 }}
-            aria-controls={open ? "account-menu" : undefined}
-            aria-haspopup="true"
-            aria-expanded={open ? "true" : undefined}
-          >
-            <MoreVertIcon style={{ color: "white" }} className="more_vert" />
-          </IconButton>
-        </Tooltip>
-      </Box>
-      <Menu
-        anchorEl={anchorEl}
-        id="account-menu"
-        open={open}
-        onClose={handleClose}
-        onClick={handleClose}
-        slotProps={{
-          paper: {
-            elevation: 0,
-            sx: {
-              overflow: "visible",
-              filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
-              mt: 1.5,
-              "& .MuiAvatar-root": {
-                width: 32,
-                height: 32,
-                ml: -0.5,
-                mr: 1,
-              },
-              "&:before": {
-                content: '""',
-                display: "block",
-                position: "absolute",
-                top: 0,
-                right: 14,
-                width: 10,
-                height: 10,
-                bgcolor: "background.paper",
-                transform: "translateY(-50%) rotate(45deg)",
-                zIndex: 0,
-              },
-            },
-          },
-        }}
-        transformOrigin={{ horizontal: "right", vertical: "top" }}
-        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-      >
-        {success && (
-          <MenuItem onClick={handleProfile}>
-            <Avatar /> {details?.username}
-          </MenuItem>
-        )}
-        {success && <Divider />}
-        {success && (
-          <MenuItem onClick={handleProfile}>
-            <ListItemIcon>
-              <Settings fontSize="small" />
-            </ListItemIcon>
-            Settings
-          </MenuItem>
-        )}
+  const handleLogout = () => {
+    close();
+    if (onLogout) void onLogout();
+  };
 
-        {!success && !loading && (
-          <MenuItem onClick={loginHandler}>
-            <ListItemIcon>
-              <Logout fontSize="small" />
-            </ListItemIcon>
-            Login
-          </MenuItem>
-        )}
-        {success && (
-          <MenuItem onClick={onLogout}>
-            <ListItemIcon>
-              <Logout fontSize="small" />
-            </ListItemIcon>
-            Logout
-          </MenuItem>
-        )}
-      </Menu>
-    </Fragment>
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (
+        open &&
+        e.target instanceof Node &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        close();
+      }
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, [open, close]);
+
+  if (loading && !details) {
+    return null;
+  }
+
+  return (
+    <div className="nav_menu" ref={dropdownRef}>
+      <div className="dropdown">
+        <button
+          type="button"
+          className={`icon profile-trigger${open ? " is-active" : ""}`}
+          onClick={toggleMenu}
+          onKeyDown={(e) => e.key === "Escape" && close()}
+          aria-haspopup="true"
+          aria-expanded={open}
+        >
+          {rippleKey > 0 ? (
+            <span key={rippleKey} className="ripple-burst" aria-hidden />
+          ) : null}
+          <span className="material-icons-outlined menu_item">person</span>
+        </button>
+
+        {open ? (
+          <div className="dropdown-menu" role="menu">
+            {success ? (
+              <button
+                type="button"
+                className="dropdown-item"
+                onClick={handleProfile}
+                role="menuitem"
+              >
+                <span className="material-icons-outlined menu_item">
+                  person
+                </span>
+                Profile
+              </button>
+            ) : null}
+            {!success ? (
+              <button
+                type="button"
+                className="dropdown-item"
+                onClick={loginHandler}
+                role="menuitem"
+              >
+                <span className="material-icons menu_item">login</span>
+                Sign in
+              </button>
+            ) : null}
+            {success ? (
+              <button
+                type="button"
+                className="dropdown-item"
+                onClick={handleLogout}
+                role="menuitem"
+              >
+                <span className="material-icons menu_item danger_icon">
+                  logout
+                </span>
+                Sign out
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }

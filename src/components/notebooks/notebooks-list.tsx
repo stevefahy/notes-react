@@ -1,25 +1,17 @@
-import {
-  Fragment,
-  useEffect,
-  useState,
-  useContext,
-  lazy,
-  Suspense,
-  useCallback,
-} from "react";
+import { Fragment, useEffect, useState, useContext, useCallback } from "react";
 import { Notebook, NotebooksListProps } from "../../types";
-import classes from "./notebooks-list.module.css";
-import { uiActions } from "../../store/ui-slice";
+import { dispatchErrorSnack } from "../../lib/dispatchSnack";
+import {
+  toLegacyCover,
+  type NotebookCoverType,
+} from "../../lib/folder-options";
 import { useAppDispatch } from "../../store/hooks";
 import Footer from "../layout/footer";
 import { AuthContext } from "../../context/AuthContext";
 import NotebookListItem from "./notebook-list-item";
 import LoadingScreen from "../ui/loading-screen";
-import Fab from "@mui/material/Fab";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
 import { addNotebook } from "../../helpers/addNotebook";
-
-const AddNotebookForm = lazy(() => import("./add-notebook-form"));
+import AddNotebookForm from "./add-notebook-form";
 
 const useAuth = () => {
   return useContext(AuthContext);
@@ -34,17 +26,11 @@ const NotebooksList = (props: NotebooksListProps) => {
   const [enableAddNotebook, setEnableAddNotebook] = useState(false);
   const [notebooks, setNotebooks] = useState<Notebook[] | []>([]);
 
-  const showNotification = useCallback(
-    (msg: string) => {
-      dispatch(
-        uiActions.showNotification({
-          status: "error",
-          title: "Error!",
-          message: msg,
-        })
-      );
+  const reportError = useCallback(
+    (err: unknown, fromServer?: boolean) => {
+      dispatchErrorSnack(dispatch, err, fromServer);
     },
-    [dispatch]
+    [dispatch],
   );
 
   useEffect(() => {
@@ -57,12 +43,12 @@ const NotebooksList = (props: NotebooksListProps) => {
       setNotebooks(noteBooksArray);
     }
     if (props.notebooks && props.notebooks.error) {
-      dispatch(
-        uiActions.showNotification({
-          status: "error",
-          title: "Error!",
-          message: props.notebooks.error,
-        })
+      dispatchErrorSnack(
+        dispatch,
+        props.notebooks.error,
+        "fromServer" in props.notebooks
+          ? props.notebooks.fromServer
+          : undefined,
       );
     }
   }, [props.notebooks, dispatch]);
@@ -77,38 +63,30 @@ const NotebooksList = (props: NotebooksListProps) => {
 
   const addNotebookHandler = async (
     notebook_name: string,
-    notebook_cover: string
-  ) => {
-    if (token) {
-      try {
-        setEnableAddNotebook(false);
-        const response = await addNotebook(
-          token,
-          notebook_name,
-          notebook_cover
-        );
-        if (response.error) {
-          showNotification(`${response.error}`);
-          return;
-        }
-        if (response.success) {
-          console.log(response.error);
-          setNotebooks((prevNotebooks) => [
-            {
-              _id: response.notebook._id,
-              notebook_name: response.notebook.notebook_name,
-              notebook_cover: response.notebook.notebook_cover,
-              updatedAt: response.notebook.updatedAt,
-              createdAt: response.notebook.createdAt,
-            },
-            ...prevNotebooks,
-          ]);
-        }
-      } catch (err) {
-        showNotification(`${err}`);
-        return;
-      }
+    notebook_cover: NotebookCoverType,
+  ): Promise<boolean> => {
+    if (!token) {
+      return false;
     }
+    try {
+      const response = await addNotebook(
+        token,
+        notebook_name,
+        toLegacyCover(notebook_cover),
+      );
+      if (response.error) {
+        reportError(response.error, response.fromServer);
+        return false;
+      }
+      if (response.success) {
+        setEnableAddNotebook(false);
+        await props.onNotebooksReload?.();
+        return true;
+      }
+    } catch (err) {
+      reportError(err, false);
+    }
+    return false;
   };
 
   return (
@@ -116,35 +94,49 @@ const NotebooksList = (props: NotebooksListProps) => {
       <div>
         {!notebooks && <LoadingScreen />}
         {notebooks && (
-          <ul className={classes.notebooks_list}>
-            {notebooks.map((notebook, index) => (
-              <div key={index}>
-                <NotebookListItem notebook_item={notebook} />
-              </div>
-            ))}
-          </ul>
+          <div className="notebooks-list-wrap">
+            <h2 className="page-heading">Your Notebooks</h2>
+            <ul className="notebooks_list">
+              {notebooks.map((notebook) => (
+                <NotebookListItem key={notebook._id} notebook_item={notebook} />
+              ))}
+            </ul>
+          </div>
         )}
         {enableAddNotebook && (
-          <Suspense fallback={<div>Page is Loading...</div>}>
-            <AddNotebookForm
-              method="create"
-              addNotebook={addNotebookHandler}
-              onCancel={cancelHandler}
-            />
-          </Suspense>
+          <AddNotebookForm
+            method="create"
+            addNotebook={addNotebookHandler}
+            onCancel={cancelHandler}
+          />
         )}
       </div>
       <Footer>
         {notebooks && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={addNotebookFormHandler}
-          >
-            <AddCircleIcon sx={{ mr: 1 }} />
-            Add Notebook
-          </Fab>
+          <div className="fab-row">
+            <button
+              type="button"
+              className="fab"
+              onClick={addNotebookFormHandler}
+              aria-label="New notebook"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 1v10M1 6h10"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              New Notebook
+            </button>
+          </div>
         )}
       </Footer>
     </Fragment>

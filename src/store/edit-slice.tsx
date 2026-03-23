@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { NotebookCoverType } from "../types";
 
 type SliceState = {
   editing: {
@@ -9,7 +8,8 @@ type SliceState = {
     message: {
       _id: string;
       notebook_name: string;
-      notebook_cover: NotebookCoverType;
+      /** API legacy: default | red | green | blue */
+      notebook_cover: string;
     };
   };
 };

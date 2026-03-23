@@ -1,204 +1,220 @@
 import { TDateISO } from "./date";
+import type { NotebookCoverType } from "../lib/folder-options";
 import {
-	DeleteResult,
-	InsertOneResult,
-	UpdateResult,
-	ObjectId,
-	BulkWriteResult,
+  DeleteResult,
+  InsertOneResult,
+  UpdateResult,
+  ObjectId,
+  BulkWriteResult,
 } from "mongodb";
 
 export interface Props {
-	children?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 // Note Editor
 
 export interface SpecialChar {
-	char: string;
-	display: string;
+  char: string;
+  display: string;
 }
 
 export interface NoteEditor {
-	visible: boolean;
-	splitScreen: boolean;
-	loadedText: string;
-	updateViewText: (updatedView: string) => void;
-	passUpdatedViewText: string;
+  visible: boolean;
+  splitScreen: boolean;
+  loadedText: string;
+  updateViewText: (updatedView: string) => void;
+  passUpdatedViewText: string;
 }
 
 export interface NoteEditorView {
-	visible: boolean;
-	splitScreen: boolean;
-	viewText: string;
-	updatedViewText: (updatedEdit: string | ((prev: string) => string)) => void;
+  visible: boolean;
+  splitScreen: boolean;
+  viewText: string;
+  updatedViewText: (updatedEdit: string | ((prev: string) => string)) => void;
 }
 
 export interface ViewNoteMarkdownProps {
-	viewText: string;
-	scrollView?: number;
-	splitScreen?: boolean;
-	updatedViewText: (updatedEdit: string | ((prev: string) => string)) => void;
-	disableLinks: boolean;
+  viewText: string;
+  scrollView?: number;
+  splitScreen?: boolean;
+  /** When omitted (e.g. thumbnails), wrapper gets `md-readonly` like Svelte `!onViewTextUpdate`. */
+  updatedViewText?: (updatedEdit: string | ((prev: string) => string)) => void;
+  disableLinks: boolean;
 }
 
 export interface SourcePosition {
-	start: { column?: number; line?: number; offset?: number };
-	end: { column?: number; line?: number; offset?: number };
+  start: { column?: number; line?: number; offset?: number };
+  end: { column?: number; line?: number; offset?: number };
 }
 
 // Note
 
 export interface Note {
-	_id: string;
-	note: string;
-	notebook: string;
-	createdAt?: TDateISO | "No date";
-	updatedAt?: TDateISO | "No date";
+  _id: string;
+  note: string;
+  notebook: string;
+  createdAt?: TDateISO | "No date";
+  updatedAt?: TDateISO | "No date";
 }
 
 // Notebook
 
 export interface NotebookItem {
-	notebook_item: Notebook;
+  notebook_item: Notebook;
 }
 
 export interface Notebook {
-	_id: string;
-	notebook_name: string;
-	notebook_cover: NotebookCoverType;
-	createdAt?: TDateISO | "No date";
-	updatedAt?: TDateISO | "No date";
+  _id: string;
+  notebook_name: string;
+  /** Legacy API: default | red | green | blue — map with getDisplayCover for UI */
+  notebook_cover: string;
+  noteCount?: number;
+  createdAt?: TDateISO | "No date";
+  updatedAt?: TDateISO | "No date";
 }
 
 interface CreateNoteError {
-	error: string;
-	success?: never;
-	note?: never;
+  error: string;
+  fromServer?: boolean;
+  success?: never;
+  note?: never;
 }
 
 interface CreateNoteSuccess {
-	error?: never;
-	success: boolean;
-	note: InsertOneResult<Document>;
+  error?: never;
+  success: boolean;
+  note: InsertOneResult<Document>;
 }
 
 export type CreateNote = CreateNoteError | CreateNoteSuccess;
 
 interface DeleteNotebookError {
-	error: string;
-	success?: never;
-	notebook_deleted?: never;
-	server_response?: never;
+  error: string;
+  fromServer?: boolean;
+  success?: never;
+  notebook_deleted?: never;
+  server_response?: never;
 }
 
 interface DeleteNotebookSuccess {
-	error?: never;
-	success: boolean;
-	notebook_deleted: ObjectId;
-	server_response: UpdateResult<Document>;
+  error?: never;
+  success: boolean;
+  notebook_deleted: ObjectId;
+  server_response: UpdateResult<Document>;
 }
 
 export type DeleteNotebook = DeleteNotebookError | DeleteNotebookSuccess;
 
 interface EditNotebookDateError {
-	error: string;
-	success?: never;
-	notebook_date_updated?: never;
+  error: string;
+  fromServer?: boolean;
+  success?: never;
+  notebook_date_updated?: never;
 }
 
 interface EditNotebookDateSuccess {
-	error?: never;
-	success: boolean;
-	notebook_deleted: ObjectId;
-	server_response: UpdateResult<Document>;
+  error?: never;
+  success: boolean;
+  notebook_deleted: ObjectId;
+  server_response: UpdateResult<Document>;
 }
 
 export type EditNotebookDate = EditNotebookDateError | EditNotebookDateSuccess;
 
 interface EditNotebookError {
-	error: string;
-	success?: never;
-	notebook_edited?: never;
+  error: string;
+  fromServer?: boolean;
+  success?: never;
+  notebook_edited?: never;
 }
 
 interface EditNotebookSuccess {
-	error?: never;
-	success: boolean;
-	notebook_edited: Notebook;
+  error?: never;
+  success: boolean;
+  notebook_edited: Notebook;
 }
 
 export type EditNotebook = EditNotebookError | EditNotebookSuccess;
 
 interface GetNotebookError {
-	error: string;
-	success?: never;
-	notebook?: never;
+  error: string;
+  fromServer?: boolean;
+  success?: never;
+  notebook?: never;
 }
 
 interface GetNotebookSuccess {
-	error?: never;
-	success: boolean;
-	notebook: Notebook;
+  error?: never;
+  success: boolean;
+  notebook: Notebook;
 }
 
 export type GetNotebook = GetNotebookError | GetNotebookSuccess;
 
 interface GetNotebooksError {
-	error: string;
-	success?: never;
-	notebooks?: never;
+  error: string;
+  fromServer?: boolean;
+  success?: never;
+  notebooks?: never;
 }
 
 interface GetNotebooksSuccess {
-	error?: never;
-	success: boolean;
-	notebooks: Notebook[];
+  error?: never;
+  success: boolean;
+  notebooks: Notebook[];
 }
 
 export type GetNotebooks = GetNotebooksError | GetNotebooksSuccess;
 
 export interface NotebooksListProps {
-	notebooks: GetNotebooks;
+  notebooks: GetNotebooks;
+  /** Re-fetch notebooks after create (matches Svelte `onNotebooksReload` / `loadNotebooks`). */
+  onNotebooksReload?: () => void | Promise<void>;
 }
 
 export interface CheckedNote {
-	id: string;
-	selected: boolean;
+  id: string;
+  selected: boolean;
 }
 
 export interface SelectedNote {
-	selected: string[];
+  selected: string[];
 }
 
 export interface NotesProps {
-	notes: Note[];
-	onNotesSelected: (selected: SelectedNote) => void;
-	onNotesEdit: boolean;
-	onClearNotesEdit: boolean;
+  notes: Note[];
+  onNotesSelected: (selected: SelectedNote) => void;
+  onNotesEdit: boolean;
+  onClearNotesEdit: boolean;
 }
 
 export interface NotebookAddEdit {
-	method: "edit" | "create";
-	notebook?: Notebook;
-	onCancel: () => void;
-	addNotebook?: (
-		notebook_name: string,
-		notebook_cover: NotebookCoverType
-	) => void;
-	editNotebook?: (
-		notebook_id: string,
-		notebook_name: string,
-		notebook_cover: NotebookCoverType,
-		notebook_updated: string
-	) => void;
+  method: "edit" | "create";
+  notebook?: Notebook;
+  onCancel: () => void;
+  /** Return false to keep the sheet open (e.g. API error). True/void: sheet exits after animation. */
+  addNotebook?: (
+    notebook_name: string,
+    notebook_cover: NotebookCoverType,
+  ) => boolean | void | Promise<boolean | void>;
+  /** Return false to keep the sheet open (e.g. API error). True/void: sheet exits after animation. */
+  editNotebook?: (
+    notebook_id: string,
+    notebook_name: string,
+    notebook_cover: NotebookCoverType,
+    notebook_updated: string,
+  ) => boolean | void | Promise<boolean | void>;
 }
 
 // SelectNotebookForm
 
 export interface SelectNotebookFormProps {
-	notebooks: Notebook[];
-	onCancel: () => void;
-	moveNotes: (notebook_id: string) => void;
+  notebooks: Notebook[];
+  /** Hide the current notebook from the destination list (Svelte `currentNotebookId`). */
+  currentNotebookId?: string | null;
+  onCancel: () => void;
+  moveNotes: (notebook_id: string) => void;
 }
 
 // Notification
@@ -206,189 +222,187 @@ export interface SelectNotebookFormProps {
 export type NotificationStatus = "pending" | "success" | "error" | null;
 
 export interface NotificationInterface {
-	status: NotificationStatus;
-	title?: string | null;
-	message?: string | null;
+  status: NotificationStatus;
+  title?: string | null;
+  message?: string | null;
 }
 
 // Alert
 
 export interface AlertInterface {
-	error_state?: boolean;
-	error_severity?: "error" | "warning" | "info" | "success" | "";
-	message?: string;
-	children?: React.ReactNode;
+  error_state?: boolean;
+  error_severity?: "error" | "warning" | "info" | "success" | "";
+  message?: string;
+  children?: React.ReactNode;
 }
 
 // UI
 
 export interface ButtonType {
-	size?: "small" | "medium" | "large" | undefined;
-	variant?: "text" | "contained" | "outlined" | undefined;
-	color?: any;
-	link?: string;
-	children?: React.ReactNode;
-	onClick?: React.MouseEventHandler<HTMLButtonElement>;
-	disabled?: boolean;
-	type?: "button" | "submit" | "reset";
+  size?: "small" | "medium" | "large" | undefined;
+  variant?: "text" | "contained" | "outlined" | undefined;
+  color?: "primary" | "secondary" | string;
+  link?: string;
+  children?: React.ReactNode;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  disabled?: boolean;
+  type?: "button" | "submit" | "reset";
 }
 
 // Auth Form
 
 export interface ErrorMessage {
-	error: boolean;
-	message: string;
+  error: boolean;
+  message: string;
 }
 
 // Profile Form
 
-interface NewUsernameObj {
-	newUsername: string;
-}
-
-interface ChangePasswordObj {
-	oldPassword: string | undefined;
-	newPassword: string | undefined;
-}
-
 export interface ProfileFormProps {
-	onChangePassword: (arg0: ChangePasswordObj) => void;
-	onChangeUsername: (arg0: NewUsernameObj) => void;
-	userName: string | undefined;
+  userName: string | undefined;
 }
 
 // Breadcrumb
 
 export type PageType = "notebooks" | "notebook" | "note" | "profile" | "other";
 
-export type NotebookCoverType = "default" | "red" | "green" | "blue";
+export type { NotebookCoverType };
 
 export type NotebookType = {
-	name: string;
-	id: string;
-	cover: NotebookCoverType;
+  name: string;
+  id: string;
+  cover: NotebookCoverType;
 };
 
 // Snackbar
 
 export interface SnackbarProps {
-	status: boolean;
-	message: string;
+  status: boolean;
+  message: string;
+  variant?: "success" | "error" | "warning";
 }
 
 export interface CreateNoteObj {
-	notebookId: string;
-	note: string;
+  notebookId: string;
+  note: string;
 }
 
 // API RESPONSES
 
 interface DeleteNotesError {
-	success?: never;
-	notes_deleted?: never;
-	error: string;
+  success?: never;
+  notes_deleted?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface DeleteNotesSuccess {
-	success: boolean;
-	notes_deleted: DeleteResult;
-	error?: never;
+  success: boolean;
+  notes_deleted: DeleteResult;
+  error?: never;
 }
 
 export type DeleteNotes = DeleteNotesError | DeleteNotesSuccess;
 
 interface GetNoteError {
-	success?: never;
-	note?: never;
-	error: string;
+  success?: never;
+  note?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface GetNoteSuccess {
-	success: boolean;
-	note: Note;
-	error?: never;
+  success: boolean;
+  note: Note;
+  error?: never;
 }
 
 export type GetNote = GetNoteError | GetNoteSuccess;
 
 interface GetNotesError {
-	success?: never;
-	notes?: never;
-	error: string;
+  success?: never;
+  notes?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface GetNotesSuccess {
-	success: boolean;
-	notes: Note[];
-	error?: never;
+  success: boolean;
+  notes: Note[];
+  error?: never;
 }
 
 export type GetNotes = GetNotesError | GetNotesSuccess;
 
 interface MoveNotesError {
-	success?: never;
-	notes_moved?: never;
-	server_response?: never;
-	error: string;
+  success?: never;
+  notes_moved?: never;
+  server_response?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface MoveNotesSuccess {
-	success: boolean;
-	notes_moved: string[];
-	server_response: BulkWriteResult;
-	error?: never;
+  success: boolean;
+  notes_moved: string[];
+  server_response: BulkWriteResult;
+  error?: never;
 }
 
 export type MoveNotes = MoveNotesError | MoveNotesSuccess;
 
 interface SaveNoteError {
-	success?: never;
-	server_response?: never;
-	error: string;
+  success?: never;
+  server_response?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface SaveNoteSuccess {
-	success: boolean;
-	server_response: UpdateResult<Document>;
-	error?: never;
+  success: boolean;
+  server_response: UpdateResult<Document>;
+  error?: never;
 }
 
 export type SaveNote = SaveNoteError | SaveNoteSuccess;
 
 interface ChangePasswordError {
-	success?: never;
-	error: string;
+  success?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface ChangePasswordSuccess {
-	success: boolean;
-	error?: never;
+  success: boolean;
+  error?: never;
 }
 
 export type ChangePassword = ChangePasswordError | ChangePasswordSuccess;
 
 interface ChangeUsernameError {
-	success?: never;
-	details?: never;
-	error: string;
+  success?: never;
+  details?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface ChangeUsernameSuccess {
-	success: boolean;
-	details: IAuthDetails;
-	error?: never;
+  success: boolean;
+  details: IAuthDetails;
+  error?: never;
 }
 
 export type ChangeUsername = ChangeUsernameError | ChangeUsernameSuccess;
 
 interface LogoutError {
-	success?: never;
-	error: string;
+  success?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface LogoutSuccess {
-	success: boolean;
-	error?: never;
+  success: boolean;
+  error?: never;
 }
 
 export type Logout = LogoutError | LogoutSuccess;
@@ -396,64 +410,65 @@ export type Logout = LogoutError | LogoutSuccess;
 // AuthContext
 
 export interface AuthContextType {
-	authContext: IAuthContext;
-	setAuthContext: React.Dispatch<React.SetStateAction<IAuthContext>>;
+  authContext: IAuthContext;
+  setAuthContext: React.Dispatch<React.SetStateAction<IAuthContext>>;
 }
 
 export interface IAuthDetails {
-	authStrategy: string;
-	username: string;
-	email: string;
-	__v: number;
-	_id: string;
+  authStrategy: string;
+  username: string;
+  email: string;
+  __v: number;
+  _id: string;
 }
 
 export interface IAuthContext {
-	loading: boolean | null;
-	success: boolean | null;
-	token: string | null;
-	details: IAuthDetails | null;
-	onLogin: (email: string, password: string) => Promise<AuthAuthenticate>;
-	onRegister: (
-		username: string,
-		email: string,
-		password: string
-	) => Promise<AuthSignup>;
-	onLogout?: () => void;
+  loading: boolean | null;
+  success: boolean | null;
+  token: string | null;
+  details: IAuthDetails | null;
+  onLogin: (email: string, password: string) => Promise<AuthAuthenticate>;
+  onRegister: (
+    username: string,
+    email: string,
+    password: string,
+  ) => Promise<AuthSignup>;
+  onLogout?: () => void;
 }
 
 interface AuthAuthenticateError {
-	success?: never;
-	token?: never;
-	details?: never;
-	error: string;
+  success?: never;
+  token?: never;
+  details?: never;
+  error: string;
+  fromServer?: boolean;
 }
 
 interface AuthAuthenticateSuccess {
-	success: boolean;
-	token: string;
-	details: IAuthDetails;
-	error?: never;
+  success: boolean;
+  token: string;
+  details: IAuthDetails;
+  error?: never;
 }
 
 // AuthAuthenticate used by refreshtoken and login
 
 export type AuthAuthenticate =
-	| AuthAuthenticateError
-	| AuthAuthenticateSuccess
-	| undefined;
+  | AuthAuthenticateError
+  | AuthAuthenticateSuccess
+  | undefined;
 
 interface WelcomeNoteSuccess {
-	notebookID: string;
-	noteID: string;
+  notebookID: string;
+  noteID: string;
 }
 
 interface WelcomeNoteError {
-	notebookID?: never;
-	noteID?: never;
+  notebookID?: never;
+  noteID?: never;
 }
 
 export type AuthSignup =
-	| (AuthAuthenticateError & WelcomeNoteError)
-	| (AuthAuthenticateSuccess & WelcomeNoteSuccess)
-	| undefined;
+  | (AuthAuthenticateError & WelcomeNoteError)
+  | (AuthAuthenticateSuccess & WelcomeNoteSuccess)
+  | undefined;

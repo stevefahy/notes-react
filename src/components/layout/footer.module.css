@@ -1,5 +1,4 @@
 .page_footer {
-  z-index: 1;
   width: 100%;
   position: fixed;
   height: calc(var(--footer-height) * 1px);
@@ -8,10 +7,9 @@
   flex-direction: column;
   justify-content: center;
   bottom: 0px;
-  box-shadow: rgb(50 50 93 / 25%) 0px -2px 12px -2px,
-    rgb(0 0 0 / 30%) 0px -1px 7px -3px;
-  background-color: white;
   z-index: 6;
+  background-color: var(--theme-surface);
+  border-top: 1px solid var(--theme-border);
 }
 
 .page_footer_container {
@@ -19,11 +17,25 @@
   width: 100%;
   display: flex;
   justify-content: space-evenly;
-  flex-direction: row;
-  flex-direction: row;
   align-items: center;
+  flex-wrap: nowrap;
+  flex-direction: row;
 }
 
 .page_footer_container button {
   pointer-events: auto;
+}
+
+/*
+  Keep the fixed footer inside the shell column on desktop (same as Svelte global.scss).
+  Must live in this module: Vite hashes .page_footer, so globals.css .page_footer never matches.
+  Threshold matches --app-shell-width (1200px).
+*/
+@media (min-width: 1201px) {
+  .page_footer {
+    max-width: var(--app-shell-width);
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+  }
 }

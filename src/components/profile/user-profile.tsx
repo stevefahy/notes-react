@@ -1,97 +1,44 @@
 import classes from "./user-profile.module.css";
-import { Fragment, useContext, useCallback } from "react";
-import { uiActions } from "../../store/ui-slice";
-import { useAppDispatch } from "../../store/hooks";
+import { useContext } from "react";
 import ProfileForm from "./profile-form";
+import { LoadingSpinner } from "../ui/loading-screen";
 import { AuthContext } from "../../context/AuthContext";
-import { IAuthContext } from "../../types";
-import { changePassword } from "../../helpers/changePassword";
-import { changeUsername } from "../../helpers/changeUsername";
 
 const UserProfile = () => {
-	const { authContext, setAuthContext } = useContext(AuthContext);
-	const { success, token, details, onLogout } = authContext;
+  const { authContext } = useContext(AuthContext);
+  const { success, token, details } = authContext;
 
-	const dispatch = useAppDispatch();
+  const initial = details?.username?.charAt(0).toUpperCase() ?? "";
+  const avatarLabel = details?.username
+    ? `Avatar, ${details.username}`
+    : "User profile";
 
-	const showNotification = useCallback(
-		(msg: string) => {
-			dispatch(
-				uiActions.showNotification({
-					status: "error",
-					title: "Error!",
-					message: msg,
-				})
-			);
-		},
-		[dispatch]
-	);
-
-	const changePasswordHandler = async (passwordData: {}) => {
-		if (token) {
-			try {
-				const response = await changePassword(token, passwordData);
-				if (response.error) {
-					showNotification(`${response.error}`);
-					return;
-				}
-				if (response.success) {
-				}
-			} catch (err) {
-				showNotification(`${err}`);
-				return;
-			}
-		}
-	};
-
-	const changeUsernameHandler = async (passwordData: {}) => {
-		if (token) {
-			try {
-				const response = await changeUsername(token, passwordData);
-				if (response.error) {
-					showNotification(`${response.error}`);
-					return;
-				}
-				if (response.error === "Unauthorized") {
-					if (onLogout) {
-						onLogout();
-					}
-					return;
-				}
-				if (response.success) {
-					setAuthContext((authContext: IAuthContext) => {
-						return {
-							...authContext,
-							success: response.success,
-							details: response.details,
-							loading: false,
-						};
-					});
-				}
-			} catch (err) {
-				showNotification(`${err}`);
-				return;
-			}
-		}
-	};
-
-	return (
-		<Fragment>
-			{!success && <p>Loading...</p>}
-			{success && !token && <p>Unauthorized</p>}
-			{success && token && (
-				<section className={classes.profile}>
-					<h2>{details?.username}</h2>
-					<h3>{details?.email}</h3>
-					<ProfileForm
-						userName={details?.username}
-						onChangePassword={changePasswordHandler}
-						onChangeUsername={changeUsernameHandler}
-					/>
-				</section>
-			)}
-		</Fragment>
-	);
+  return (
+    <section className={classes.profilePage}>
+      {!success && (
+        <div className={classes.loadingWrap} role="status" aria-label="Loading">
+          <LoadingSpinner />
+        </div>
+      )}
+      {success && !token && (
+        <p className={classes.unauthorized}>Unauthorized</p>
+      )}
+      {success && token && (
+        <>
+          <div className={classes.profileOuter} aria-label={avatarLabel}>
+            {initial}
+          </div>
+          <div className={classes.profileName}>
+            {details?.username ? <div>{details.username}</div> : null}
+          </div>
+          <div className={classes.profileEmail}>
+            {details?.email ? details.email : null}
+          </div>
+          <ProfileForm userName={details?.username} />
+        </>
+      )}
+    </section>
+  );
 };
 
 export default UserProfile;

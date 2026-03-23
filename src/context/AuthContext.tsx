@@ -1,4 +1,4 @@
-import { useState, createContext, useEffect, useCallback } from "react";
+import { useState, createContext, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AuthContextType,
@@ -7,8 +7,9 @@ import {
   AuthSignup,
 } from "../types";
 import APPLICATION_CONSTANTS from "../application_constants/applicationConstants";
-import { uiActions } from "../store/ui-slice";
 import { useAppDispatch } from "../store/hooks";
+import { dispatchErrorSnack } from "../lib/dispatchSnack";
+import { toUserFriendlyError } from "../lib/errorMessageMap";
 import { logout } from "../helpers/logout";
 import { login } from "../helpers/login";
 import { signup } from "../helpers/signup";
@@ -21,19 +22,10 @@ const AuthContext = createContext<AuthContextType>(null!);
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-
-  const showNotification = useCallback(
-    (msg: string) => {
-      dispatch(
-        uiActions.showNotification({
-          status: "error",
-          title: "Error!",
-          message: msg,
-        })
-      );
-    },
-    [dispatch]
-  );
+  /** Coalesce concurrent refreshtoken calls (matches Svelte auth store; avoids duplicate 401s under Strict Mode). */
+  const refreshInProgressRef = useRef<Promise<
+    AuthAuthenticate | undefined
+  > | null>(null);
 
   // Sync logout across tabs
   const syncLogout = useCallback(
@@ -42,7 +34,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         navigate(`${AC.LOGIN_PAGE}`);
       }
     },
-    [navigate]
+    [navigate],
   );
 
   useEffect(() => {
@@ -57,7 +49,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const response = await logout(token);
         if (response.error) {
-          showNotification(`${response.error}`);
+          dispatchErrorSnack(dispatch, response.error, response.fromServer);
           return;
         }
         if (response.success) {
@@ -67,7 +59,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           navigate(`${AC.LOGIN_PAGE}`);
         }
       } catch (err) {
-        showNotification(`${err}`);
+        dispatchErrorSnack(dispatch, err, false);
         return;
       }
     }
@@ -75,7 +67,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleLogout = async () => {
     const context = await getRefreshToken();
-    if (context && context.token !== null) {
+    if (context && typeof context.token === "string") {
       logoutHandler(context.token);
     }
   };
@@ -83,7 +75,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSignup = async (
     username: string,
     email: string,
-    password: string
+    password: string,
   ): Promise<AuthSignup> => {
     if (email && password) {
       try {
@@ -92,8 +84,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
         if (response.error) {
-          showNotification(`${response.error}`);
-          return;
+          return response;
         }
         if (response.success) {
           setAuthContext((authContext: IAuthContext) => {
@@ -114,15 +105,14 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           };
         }
       } catch (err) {
-        showNotification(`${err}`);
-        return;
+        return { error: toUserFriendlyError(err), fromServer: false };
       }
     }
   };
 
   const handleLogin = async (
     email: string,
-    password: string
+    password: string,
   ): Promise<AuthAuthenticate> => {
     if (email && password) {
       try {
@@ -131,8 +121,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
         if (response.error) {
-          showNotification(`${response.error}`);
-          return;
+          return response;
         }
         if (response.success) {
           setAuthContext((authContext: IAuthContext) => {
@@ -144,10 +133,14 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               loading: false,
             };
           });
+          return response;
         }
+        return {
+          error: AC.LOGIN_ERROR,
+          fromServer: false,
+        };
       } catch (err) {
-        showNotification(`${err}`);
-        return;
+        return { error: toUserFriendlyError(err), fromServer: false };
       }
     }
   };
@@ -174,22 +167,35 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     onRegister: handleSignup,
   };
 
-  const getRefreshToken = useCallback(async () => {
+  const getRefreshToken = useCallback(async (): Promise<
+    AuthAuthenticate | undefined
+  > => {
+    const inFlight = refreshInProgressRef.current;
+    if (inFlight) {
+      return inFlight;
+    }
+    const promise = (async (): Promise<AuthAuthenticate | undefined> => {
+      try {
+        const response = await refreshtoken();
+        if (!response) {
+          return undefined;
+        }
+        if (response.error) {
+          return undefined;
+        }
+        if (response.success) {
+          return response;
+        }
+      } catch {
+        return undefined;
+      }
+      return undefined;
+    })();
+    refreshInProgressRef.current = promise;
     try {
-      const response = await refreshtoken();
-      if (!response) {
-        return;
-      }
-      if (response.error) {
-        // showNotification(`${response.error}`);
-        return;
-      }
-      if (response.success) {
-        return response;
-      }
-    } catch (err) {
-      // showNotification(`${err}`);
-      return;
+      return await promise;
+    } finally {
+      refreshInProgressRef.current = null;
     }
   }, []);
 
