@@ -74,6 +74,18 @@ export function sanitizeCustomCssClasses(raw: string): string {
 const SIMPLE_TARGET_RE = /^[\w.-]+$/;
 const ENCODED_TARGET_RE = /^[\w.~+@%+-]+$/i;
 
+/** C0 controls, DEL, `<>"`, and Unicode whitespace are not allowed in decoded targets. */
+function decodedMarkdownTargetHasInvalidChars(decoded: string): boolean {
+  for (let i = 0; i < decoded.length; i++) {
+    const code = decoded.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) return true;
+    const ch = decoded[i];
+    if (ch === '<' || ch === '>' || ch === '"') return true;
+    if (/\s/u.test(ch)) return true;
+  }
+  return false;
+}
+
 export function sanitizeMarkdownTargetId(fragment: string): string | null {
   const raw = fragment.trim();
   if (!raw) return null;
@@ -84,7 +96,7 @@ export function sanitizeMarkdownTargetId(fragment: string): string | null {
   try {
     const decoded = decodeURIComponent(raw);
     if (decoded.length > 256) return null;
-    if (/[\s\u0000-\u001F\u007F<>"]/.test(decoded)) return null;
+    if (decodedMarkdownTargetHasInvalidChars(decoded)) return null;
     return raw;
   } catch {
     return null;

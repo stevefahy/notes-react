@@ -2,6 +2,7 @@ import { useParams, useNavigate, useBlocker } from "react-router-dom";
 import {
   Fragment,
   useEffect,
+  useLayoutEffect,
   useCallback,
   useState,
   useContext,
@@ -10,7 +11,20 @@ import {
 import { editActions } from "../store/edit-slice";
 import { useAppDispatch } from "../store/hooks";
 import { dispatchErrorSnack, dispatchSuccessSnack } from "../lib/dispatchSnack";
-import { initScrollSync } from "../lib/scroll_sync";
+import {
+  alignNotePanesScroll,
+  captureSplitEnterScrollSnap,
+  detachScrollSyncListeners,
+  initScrollSync,
+  stabilizeSplitEnterScroll,
+} from "../lib/scroll_sync";
+import {
+  commitNoteShellTransition,
+  getNoteShellEditViewTransitionCleanupMs,
+  getNoteShellSplitTransitionCleanupMs,
+} from "../lib/noteShellDom";
+import type { NoteShellLayout } from "../lib/noteShellDom";
+import { useNoteShellSwipeNavigation } from "../lib/useNoteShellSwipeNavigation";
 import useWindowDimensions from "../lib/useWindowDimension";
 import APPLICATION_CONSTANTS from "../application_constants/applicationConstants";
 import { AuthContext } from "../context/AuthContext";
@@ -51,21 +65,6 @@ const NotePage = () => {
     [dispatch],
   );
 
-  useEffect(() => {
-    if (width < APPLICATION_CONSTANTS.SPLITSCREEN_MINIMUM_WIDTH) {
-      setIsplitScreen(false);
-      setIsMobile(true);
-    } else {
-      setIsMobile(false);
-    }
-  }, [width, height]);
-
-  useEffect(() => {
-    setTimeout(() => {
-      initScrollSync();
-    }, 500);
-  }, []);
-
   const [viewText, setViewText] = useState("");
   const [loadedText, setLoadedText] = useState("");
   const [isChanged, setIsChanged] = useState(false);
@@ -77,6 +76,178 @@ const NotePage = () => {
   const [updateEditTextProp, setUpdateEditTextProp] = useState("");
   const [noteLoaded, setNoteLoaded] = useState(false);
   const [notebookLoaded, setNotebookLoaded] = useState(false);
+
+  useEffect(() => {
+    if (width < APPLICATION_CONSTANTS.SPLITSCREEN_MINIMUM_WIDTH) {
+      setIsplitScreen(false);
+      setIsMobile(true);
+    } else {
+      setIsMobile(false);
+    }
+  }, [width, height]);
+
+  const prevIsSplitRef = useRef(isSplitScreen);
+  const splitEnterFromRef = useRef<"edit" | "view" | null>(null);
+  const viewContainerRef = useRef<HTMLDivElement | null>(null);
+  const prevNoteShellLayoutRef = useRef<NoteShellLayout | null>(null);
+  const splitPostAlignTimeoutRef = useRef<number | null>(null);
+  const splitEnterSnapRef = useRef<ReturnType<
+    typeof captureSplitEnterScrollSnap
+  > | null>(null);
+  const splitStabilizeCleanupRef = useRef<(() => void) | null>(null);
+  const prevIsSplitForScrollRef = useRef(isSplitScreen);
+  const prevNoteShellLayoutScrollRef = useRef<NoteShellLayout | null>(null);
+
+  const noteShellLayout: NoteShellLayout = isSplitScreen
+    ? "split"
+    : isView
+      ? "view"
+      : "edit";
+
+  const swipeGoToView = useCallback(() => setIsView(true), []);
+  const swipeGoToEdit = useCallback(() => setIsView(false), []);
+
+  const noteShellReady = noteLoaded && token !== null;
+
+  useNoteShellSwipeNavigation(
+    viewContainerRef,
+    noteShellLayout,
+    swipeGoToView,
+    swipeGoToEdit,
+    noteShellReady,
+  );
+
+  useLayoutEffect(() => {
+    if (!prevIsSplitRef.current && isSplitScreen) {
+      splitEnterFromRef.current = isView ? "view" : "edit";
+    }
+    prevIsSplitRef.current = isSplitScreen;
+  }, [isSplitScreen, isView]);
+
+  useLayoutEffect(() => {
+    const el = viewContainerRef.current;
+    const prev = prevNoteShellLayoutRef.current;
+    if (prev !== null && prev !== noteShellLayout) {
+      commitNoteShellTransition(el, prev, noteShellLayout);
+    }
+    prevNoteShellLayoutRef.current = noteShellLayout;
+  }, [noteShellLayout]);
+
+  useLayoutEffect(() => {
+    const prevLayout = prevNoteShellLayoutScrollRef.current;
+    const editViewTransition =
+      prevLayout !== null &&
+      ((prevLayout === "edit" && noteShellLayout === "view") ||
+        (prevLayout === "view" && noteShellLayout === "edit"));
+
+    const wasSplit = prevIsSplitForScrollRef.current;
+    const leavingSplit = wasSplit && !isSplitScreen;
+    const enteringSplit = !wasSplit && isSplitScreen;
+    prevIsSplitForScrollRef.current = isSplitScreen;
+
+    if (leavingSplit || enteringSplit || editViewTransition) {
+      detachScrollSyncListeners();
+    }
+
+    if (splitPostAlignTimeoutRef.current !== null) {
+      window.clearTimeout(splitPostAlignTimeoutRef.current);
+      splitPostAlignTimeoutRef.current = null;
+    }
+    splitStabilizeCleanupRef.current?.();
+    splitStabilizeCleanupRef.current = null;
+
+    let raf1 = 0;
+    let raf2 = 0;
+    const splitFrom = splitEnterFromRef.current;
+    const snapCaptured = splitEnterSnapRef.current;
+
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (!isSplitScreen) {
+          if (leavingSplit) {
+            const exitSettleMs = getNoteShellSplitTransitionCleanupMs() + 120;
+            splitPostAlignTimeoutRef.current = window.setTimeout(() => {
+              splitPostAlignTimeoutRef.current = null;
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  splitEnterFromRef.current = null;
+                  initScrollSync();
+                });
+              });
+            }, exitSettleMs);
+            return;
+          }
+          if (editViewTransition) {
+            const settleMs = getNoteShellEditViewTransitionCleanupMs() + 120;
+            splitPostAlignTimeoutRef.current = window.setTimeout(() => {
+              splitPostAlignTimeoutRef.current = null;
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  alignNotePanesScroll(noteShellLayout, null);
+                  splitEnterFromRef.current = null;
+                  initScrollSync();
+                });
+              });
+            }, settleMs);
+            return;
+          }
+          alignNotePanesScroll(noteShellLayout, null);
+          splitEnterFromRef.current = null;
+          initScrollSync();
+          return;
+        }
+
+        const splitEnterWithOrigin = splitFrom !== null;
+        if (splitEnterWithOrigin) {
+          splitEnterFromRef.current = null;
+        }
+
+        if (splitEnterWithOrigin && snapCaptured) {
+          splitEnterSnapRef.current = null;
+          const splitStabilizeMs = getNoteShellSplitTransitionCleanupMs() + 120;
+          splitStabilizeCleanupRef.current = stabilizeSplitEnterScroll(
+            snapCaptured,
+            splitStabilizeMs,
+            () => {
+              splitStabilizeCleanupRef.current = null;
+              initScrollSync();
+            },
+          );
+          return;
+        }
+
+        if (splitEnterWithOrigin) {
+          splitPostAlignTimeoutRef.current = window.setTimeout(() => {
+            splitPostAlignTimeoutRef.current = null;
+            alignNotePanesScroll("split", splitFrom);
+            initScrollSync();
+          }, getNoteShellSplitTransitionCleanupMs());
+          return;
+        }
+
+        alignNotePanesScroll("split", null);
+        initScrollSync();
+      });
+    });
+    prevNoteShellLayoutScrollRef.current = noteShellLayout;
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      if (splitPostAlignTimeoutRef.current !== null) {
+        window.clearTimeout(splitPostAlignTimeoutRef.current);
+        splitPostAlignTimeoutRef.current = null;
+      }
+      splitStabilizeCleanupRef.current?.();
+      splitStabilizeCleanupRef.current = null;
+    };
+  }, [noteShellLayout, isSplitScreen]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      initScrollSync();
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const creating = noteId === "create-note";
@@ -158,8 +329,13 @@ const NotePage = () => {
   }, [isView]);
 
   const toggleSplitHandlerCallback = useCallback(() => {
+    if (!isSplitScreen) {
+      splitEnterSnapRef.current = captureSplitEnterScrollSnap(isView);
+    } else {
+      splitEnterSnapRef.current = null;
+    }
     setIsplitScreen(!isSplitScreen);
-  }, [isSplitScreen]);
+  }, [isSplitScreen, isView]);
 
   const persistNote = useCallback(
     async (opts: PersistOpts): Promise<boolean> => {
@@ -257,6 +433,7 @@ const NotePage = () => {
 
   const exampleNote = () => {
     if (!isMobile) {
+      splitEnterSnapRef.current = captureSplitEnterScrollSnap(isView);
       setIsplitScreen(true);
     }
     updatedViewTextHandler(WELCOME_NOTE);
@@ -313,19 +490,21 @@ const NotePage = () => {
       <div className="page_scrollable_header_breadcrumb_footer">
         {noteLoaded && token !== null && (
           <div
+            ref={viewContainerRef}
             className={`view_container${
               isSplitScreen ? " editnote_box_split" : ""
             }`}
             id="view_container"
+            data-note-layout={noteShellLayout}
           >
-            <EditNoteMemo
+            <EditNote
               visible={!isView || isSplitScreen}
               splitScreen={isSplitScreen}
               loadedText={loadedText}
               updateViewText={updatedViewTextHandler}
               passUpdatedViewText={updateEditTextProp}
             />
-            <ViewNoteMemo
+            <ViewNote
               visible={isView || isSplitScreen}
               splitScreen={isSplitScreen}
               viewText={viewText}
@@ -490,6 +669,4 @@ const NotePage = () => {
   );
 };
 
-const ViewNoteMemo = ViewNote;
-const EditNoteMemo = EditNote;
 export default NotePage;

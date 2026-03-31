@@ -877,8 +877,10 @@ li code:not(pre code) {
   display: flex;
   flex-flow: column;
   height: 100%;
-  overflow: auto;
-  overflow-y: auto;
+  /* Avoid a horizontal scrollport on the shell (competes with swipe); panes scroll internally. */
+  overflow-x: hidden;
+  overflow-y: hidden;
+  touch-action: pan-y;
 }
 
 .view_container.editnote_box_split {

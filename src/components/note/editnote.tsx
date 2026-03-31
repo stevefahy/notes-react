@@ -1,4 +1,4 @@
-import React, { Fragment, useRef, useEffect } from "react";
+import React, { Fragment, useRef, useEffect, memo } from "react";
 import { NoteEditor } from "../../types";
 
 const EditNote = (props: NoteEditor) => {
@@ -33,12 +33,10 @@ const EditNote = (props: NoteEditor) => {
   };
 
   const editPaneClassName = [
+    "note-pane",
+    "note-pane--edit",
     "edit",
     "editnote_box",
-    splitscreen && "view_split",
-    splitscreen && "show",
-    !splitscreen && showPane && "show",
-    !splitscreen && !showPane && "hide",
   ]
     .filter(Boolean)
     .join(" ");
@@ -46,20 +44,20 @@ const EditNote = (props: NoteEditor) => {
   return (
     <Fragment>
       <div id="edit" className={editPaneClassName}>
-        <div className="edit-note">
-          <div className="note-card">
-            <article className="v-card-text viewnote_content editor">
-              <div
-                ref={noteInputRef}
-                // set contentEditable to false when not in view
-                // to stop soft keyboard popping up on mobile
-                contentEditable={showPane}
-                className="viewnote_content editable"
-                onInput={(e) => setText(e)}
-                data-placeholder="Start writing..."
-                role="textbox"
-              ></div>
-            </article>
+        <div className="note-pane-scroll">
+          <div className="edit-note">
+            <div className="note-card">
+              <article className="v-card-text viewnote_content editor">
+                <div
+                  ref={noteInputRef}
+                  contentEditable={showPane}
+                  className="viewnote_content editable"
+                  onInput={(e) => setText(e)}
+                  data-placeholder="Start writing..."
+                  role="textbox"
+                ></div>
+              </article>
+            </div>
           </div>
         </div>
       </div>
@@ -67,4 +65,4 @@ const EditNote = (props: NoteEditor) => {
   );
 };
 
-export default EditNote;
+export default memo(EditNote);
