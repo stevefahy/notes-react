@@ -16,6 +16,7 @@ function renderLogin() {
       onRegister: vi.fn().mockResolvedValue(undefined),
     },
     setAuthContext: vi.fn(),
+    verifyRefreshTokenWithRetry: vi.fn().mockResolvedValue(undefined),
   };
   return render(
     <MemoryRouter>

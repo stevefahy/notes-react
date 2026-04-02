@@ -1,4 +1,4 @@
-import { Suspense, useContext } from "react";
+import { Suspense, useContext, useEffect } from "react";
 import {
   createBrowserRouter,
   Navigate,
@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import LoadingScreen from "./components/ui/loading-screen";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
 import { lazyRoute } from "./lib/lazyRoute";
+import { isJwtExpired } from "./lib/jwt";
 import APPLICATION_CONSTANTS from "./application_constants/applicationConstants";
 
 const NotebooksPage = lazyRoute(() => import("./pages/notebooks"));
@@ -42,10 +43,24 @@ function AuthBootstrap() {
 }
 
 function RequireAuth() {
-  const { authContext } = useAuth();
+  const { authContext, verifyRefreshTokenWithRetry } = useAuth();
   const location = useLocation();
-  if (!authContext.token) {
+  const token = authContext.token;
+
+  useEffect(() => {
+    if (!token || !isJwtExpired(token)) return;
+    void verifyRefreshTokenWithRetry();
+  }, [token, verifyRefreshTokenWithRetry]);
+
+  if (!token) {
     return <Navigate to="/LoginPage" replace state={{ from: location }} />;
+  }
+  if (isJwtExpired(token)) {
+    return (
+      <div className="loading_routes">
+        <LoadingScreen />
+      </div>
+    );
   }
   return <Outlet />;
 }

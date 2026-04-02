@@ -158,10 +158,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const [authContext, setAuthContext] = useState<IAuthContext>(initialState);
-  const value = {
-    authContext,
-    setAuthContext,
-  };
 
   const getRefreshToken = useCallback(async (): Promise<
     AuthAuthenticate | undefined
@@ -195,7 +191,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  const resetAuthContext = () => {
+  const resetAuthContext = useCallback(() => {
     setAuthContext((authContext) => {
       return {
         ...authContext,
@@ -205,35 +201,42 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         loading: false,
       };
     });
-  };
+  }, []);
 
-  const verifyRefreshToken = useCallback(async () => {
-    try {
-      const response = await getRefreshToken();
-      if (response === null || response === undefined) {
-        resetAuthContext();
-        return;
+  const verifyRefreshTokenWithRetry = useCallback(
+    async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await getRefreshToken();
+          if (response?.success) {
+            setAuthContext((oldValues) => {
+              return {
+                ...oldValues,
+                success: response.success,
+                token: response.token,
+                details: response.details,
+                loading: false,
+              };
+            });
+            return;
+          }
+        } catch {
+          /* retry on next iteration */
+        }
+        if (i < retries - 1) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
       }
-      if (response.success) {
-        setAuthContext((oldValues) => {
-          return {
-            ...oldValues,
-            success: response.success,
-            token: response.token,
-            details: response.details,
-            loading: false,
-          };
-        });
-      }
-    } catch {
       resetAuthContext();
-    }
-  }, [getRefreshToken]);
+      navigate(`${AC.LOGIN_PAGE}`);
+    },
+    [getRefreshToken, navigate, resetAuthContext],
+  );
 
   useEffect(() => {
-    verifyRefreshToken();
+    void verifyRefreshTokenWithRetry();
     return () => {};
-  }, [verifyRefreshToken]);
+  }, [verifyRefreshTokenWithRetry]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -242,23 +245,31 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         clearInterval(interval);
         navigate(`${AC.LOGIN_PAGE}`);
       } else {
-        verifyRefreshToken();
+        void verifyRefreshTokenWithRetry();
       }
     }, APPLICATION_CONSTANTS.REFRESH_TOKEN_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [authContext.success, navigate, verifyRefreshToken]);
+  }, [authContext.success, navigate, verifyRefreshTokenWithRetry]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        verifyRefreshToken();
+        window.setTimeout(() => {
+          void verifyRefreshTokenWithRetry();
+        }, 500);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [verifyRefreshToken]);
+  }, [verifyRefreshTokenWithRetry]);
+
+  const value = {
+    authContext,
+    setAuthContext,
+    verifyRefreshTokenWithRetry,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

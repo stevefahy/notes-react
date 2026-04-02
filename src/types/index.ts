@@ -402,6 +402,8 @@ export type Logout = LogoutError | LogoutSuccess;
 export interface AuthContextType {
   authContext: IAuthContext;
   setAuthContext: React.Dispatch<React.SetStateAction<IAuthContext>>;
+  /** Refreshes session with retries (e.g. on resume); used by route guard when access JWT is expired. */
+  verifyRefreshTokenWithRetry: (retries?: number) => Promise<void>;
 }
 
 export interface IAuthDetails {
